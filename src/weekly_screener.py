@@ -3,36 +3,25 @@ import sys
 import json
 import time
 import datetime
-import requests
-import io
 import pandas as pd
 import yfinance as yf
 from utils.notifier import send_notification
 
-# JPX 東証上場銘柄一覧 (毎月更新される公式Excel)
-JPX_URL = "https://www.jpx.co.jp/markets/statistics-quotes/stocks/tvdivq0000003000-att/data_j.xls"
+CSV_PATH = "data/jpx_stocks.csv"
 
-def fetch_jpx_stock_list():
-    """JPX公式から東証上場銘柄の一覧を取得"""
-    print("[INFO] JPXから東証上場銘柄一覧をダウンロード中...")
-    headers = {"User-Agent": "Mozilla/5.0"}
-    res = requests.get(JPX_URL, headers=headers, timeout=30)
-    res.raise_for_status()
-    
-    df = pd.read_excel(io.BytesIO(res.content))
-    # 対象市場（プライム、スタンダード、グロース）のみ抽出
-    target_markets = ['プライム（内国株式）', 'スタンダード（内国株式）', 'グロース（内国株式）']
-    df_filtered = df[df['市場・商品区分'].isin(target_markets)].copy()
-    df_filtered = df_filtered.rename(columns={'コード': 'code', '銘柄名': 'name', '市場・商品区分': 'market', '33業種区分': 'sector'})
-    print(f"[INFO] 対象銘柄数: {len(df_filtered)} 件")
-    return df_filtered[['code', 'name', 'market', 'sector']]
+def load_stock_list():
+    """管理マスターCSVから銘柄一覧を安定読み込み"""
+    if not os.path.exists(CSV_PATH):
+        raise FileNotFoundError(f"{CSV_PATH} が見つかりません。")
+    df = pd.read_csv(CSV_PATH, dtype={'code': str})
+    print(f"[INFO] 監視対象銘柄数: {len(df)} 件")
+    return df
 
 def is_blackout_period(ticker_obj, blackout_days=14):
     """直近指定日数以内に決算発表を控えているかを判定"""
     try:
         calendar = ticker_obj.calendar
         if calendar is not None and not calendar.empty:
-            # yfinanceのcalendar形式に柔軟に対応
             earnings_dates = []
             if isinstance(calendar, dict) and 'Earnings Date' in calendar:
                 earnings_dates = calendar['Earnings Date']
@@ -41,7 +30,7 @@ def is_blackout_period(ticker_obj, blackout_days=14):
 
             today = datetime.date.today()
             for d in earnings_dates:
-                if isinstance(d, datetime.datetime) or isinstance(d, datetime.date):
+                if isinstance(d, (datetime.datetime, datetime.date)):
                     target_date = d.date() if isinstance(d, datetime.datetime) else d
                     diff = (target_date - today).days
                     if 0 <= diff <= blackout_days:
@@ -83,14 +72,15 @@ def screen_stock(row):
         if not market_cap:
             return None
 
-        # 時価総額: 50億円以上 〜 1000億円以下（テンバガーゾーン）
+        # 時価総額: 50億円以上 〜 1,000億円以下（テンバガー有望ゾーン）
+        # ※テスト時に引っかかりやすくするため上限を緩和する場合はここを調整可能
         if not (5_000_000_000 <= market_cap <= 100_000_000_000):
             return None
 
-        # 4. 決算直前ブラックアウトガード（決算ギャンブル防止）
+        # 4. 決算直前ブラックアウトガード
         is_bo, bo_detail = is_blackout_period(t, blackout_days=14)
         if is_bo:
-            print(f"[SKIP] {row['name']} ({row['code']}) は決算間近のため除外: {bo_detail}")
+            print(f"[SKIP] {row['name']} ({row['code']}) は決算直前の除外対象: {bo_detail}")
             return None
 
         return {
@@ -103,48 +93,38 @@ def screen_stock(row):
             "trading_value_man": round(trading_val / 10_000, 1),
             "screened_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         }
-    except Exception:
+    except Exception as e:
         return None
 
 def main():
     start_time = time.time()
     os.makedirs("data", exist_ok=True)
     
-    # 全銘柄リスト取得
-    df_stocks = fetch_jpx_stock_list()
-    
+    df_stocks = load_stock_list()
     candidates = []
     print("[INFO] 定量・テクニカルスクリーニングを開始します...")
 
-    # レート制限を考慮しつつ順次走査（最大上位から順にテスト、または全件）
     for idx, row in df_stocks.iterrows():
         result = screen_stock(row)
         if result:
             candidates.append(result)
             print(f"[HIT] {result['code']} {result['name']} (時価総額: {result['market_cap_oku']}億円)")
 
-        # APIレート制限対策（0.2秒待機）
-        time.sleep(0.2)
+        time.sleep(0.3)
 
-        # 週末バッチで50〜60件程度集まったら次工程のエージェント分析用としては十分
-        if len(candidates) >= 50:
-            print("[INFO] 候補が規定数（50銘柄）に達したためスクリーニングを完了します。")
-            break
-
-    # 結果をJSONファイルへ保存
     output_path = "data/screened_candidates.json"
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(candidates, f, ensure_ascii=False, indent=2)
 
     elapsed = round(time.time() - start_time, 1)
-    msg = f"週末スクリーニング完了（所要時間: {elapsed}秒）\n通過銘柄数: {len(candidates)}件\nデータを {output_path} に保存しました。"
+    msg = f"週末スクリーニング完了（所要時間: {elapsed}秒）\n通過銘柄数: {len(candidates)}件"
     print(msg)
 
     if candidates:
         top_names = "\n".join([f"・{c['code']} {c['name']} ({c['market_cap_oku']}億)" for c in candidates[:5]])
-        send_notification("週末スクリーニング（足切り完了）", f"{msg}\n\n【代表候補抜粋】\n{top_names}\n\n※この後Step 3のAIエージェント詳細分析に引き継がれます。")
+        send_notification("週末スクリーニング完了", f"{msg}\n\n【抽出銘柄】\n{top_names}\n\n※AI統合アナリティクス分析へ引き継がれます。")
     else:
-        send_notification("週末スクリーニング", f"{msg}\n該当銘柄がありませんでした。")
+        send_notification("週末スクリーニング完了", f"{msg}\n基準（上昇トレンド・中小型時価総額・流動性）を満たす銘柄はありませんでした。")
 
 if __name__ == "__main__":
     main()
