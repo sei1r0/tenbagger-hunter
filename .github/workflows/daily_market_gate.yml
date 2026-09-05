@@ -2,9 +2,8 @@ name: Daily Market Gate
 
 on:
   schedule:
-    # JST 07:35 は UTC 22:35 (日〜木)
     - cron: '35 22 * * 0-4'
-  workflow_dispatch: # GitHub Web画面からの手動実行用
+  workflow_dispatch:
 
 jobs:
   market_gate:
@@ -30,18 +29,24 @@ jobs:
       - name: Run Daily Gate Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NOTIFICATION_WEBHOOK: ${{ secrets.NOTIFICATION_WEBHOOK }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
         run: |
           python src/daily_gate.py
 
       - name: Notify on Failure
         if: failure()
         env:
-          NOTIFICATION_WEBHOOK: ${{ secrets.NOTIFICATION_WEBHOOK }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
         run: |
           python -c "
           import os, requests
-          url = os.getenv('NOTIFICATION_WEBHOOK')
-          if url:
-              requests.post(url, json={'content': '🚨 **【日次処理異常終了】** Daily Market Gate ジョブの実行中にエラーが発生しました。ログを確認してください。'})
+          token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
+          uid = os.getenv('LINE_USER_ID')
+          if token and uid:
+              endpoint = 'https://api.line.me/v2/bot/message/push'
+              headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
+              payload = {'to': uid, 'messages': [{'type': 'text', 'text': '🚨【システム異常】Daily Market Gate ジョブの実行中にエラーが発生しました。'}]}
+              requests.post(endpoint, headers=headers, json=payload, timeout=10)
           "
