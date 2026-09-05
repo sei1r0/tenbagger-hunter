@@ -24,8 +24,8 @@ def fetch_market_data(ticker_symbol: str, retries=3):
     return {"close": None, "pct_change": 0.0}
 
 def main():
-    # 1. 日本市場の開場判定（★テストのため一時的にコメントアウト）
-    # guard_tokyo_market()
+    # 1. 日本市場の開場判定
+    guard_tokyo_market()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
