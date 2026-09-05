@@ -1,0 +1,47 @@
+name: Daily Market Gate
+
+on:
+  schedule:
+    # JST 07:35 は UTC 22:35 (日〜木)
+    - cron: '35 22 * * 0-4'
+  workflow_dispatch: # GitHub Web画面からの手動実行用
+
+jobs:
+  market_gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Daily Gate Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NOTIFICATION_WEBHOOK: ${{ secrets.NOTIFICATION_WEBHOOK }}
+        run: |
+          python src/daily_gate.py
+
+      - name: Notify on Failure
+        if: failure()
+        env:
+          NOTIFICATION_WEBHOOK: ${{ secrets.NOTIFICATION_WEBHOOK }}
+        run: |
+          python -c "
+          import os, requests
+          url = os.getenv('NOTIFICATION_WEBHOOK')
+          if url:
+              requests.post(url, json={'content': '🚨 **【日次処理異常終了】** Daily Market Gate ジョブの実行中にエラーが発生しました。ログを確認してください。'})
+          "

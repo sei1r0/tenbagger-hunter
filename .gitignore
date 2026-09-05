@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+env/
+venv/
+
+# Distribution & Temporary
+dist/
+build/
+*.egg-info/
+.DS_Store
+
+# Credentials & Keys
+*.pem
+*.key
+credentials.json
