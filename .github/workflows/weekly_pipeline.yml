@@ -1,0 +1,88 @@
+name: Weekly Pipeline (Screening & AI Analytics)
+
+on:
+  schedule:
+    # 毎週日曜日 JST 06:00 (UTC 土曜 21:00)
+    - cron: '0 21 * * 6'
+  workflow_dispatch:
+
+# GitHub Pages へのデプロイ権限とコミット権限を設定
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Step 2 - Run Screener
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: |
+          python src/weekly_screener.py
+
+      - name: Step 3 - Run Gemini Agent Analyst
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python src/agent_analyst.py
+
+      - name: Commit Candidates Data & Docs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/screened_candidates.json docs/index.html
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update analysis & dashboard [skip ci]" && git push)
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Notify on Failure
+        if: failure()
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: |
+          python -c "
+          import os, requests
+          token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
+          uid = os.getenv('LINE_USER_ID')
+          if token and uid:
+              endpoint = 'https://api.line.me/v2/bot/message/push'
+              headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
+              payload = {'to': uid, 'messages': [{'type': 'text', 'text': '🚨【システム異常】Weekly Pipeline 実行中にエラーが発生しました。'}]}
+              requests.post(endpoint, headers=headers, json=payload, timeout=10)
+          "
