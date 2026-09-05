@@ -3,7 +3,7 @@ import sys
 import json
 import time
 import yfinance as yf
-import google.generativeai as genai
+from google import genai
 from utils.market_calendar import guard_tokyo_market, is_us_market_open_prev_day
 from utils.notifier import send_notification
 
@@ -24,15 +24,16 @@ def fetch_market_data(ticker_symbol: str, retries=3):
     return {"close": None, "pct_change": 0.0}
 
 def main():
-    # 1. 日本市場の開場判定（休場ならここで即時終了）
-    guard_tokyo_market()
+    # 1. 日本市場の開場判定（★テストのため一時的にコメントアウト）
+    # guard_tokyo_market()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("[ERROR] GEMINI_API_KEY が設定されていません。")
         sys.exit(1)
 
-    genai.configure(api_key=api_key)
+    # 新SDK Clientの初期化
+    client = genai.Client(api_key=api_key)
 
     # 2. 米国市場休場フラグの確認
     us_open = is_us_market_open_prev_day()
@@ -50,7 +51,7 @@ def main():
     for name, sym in symbols.items():
         market_snapshot[name] = fetch_market_data(sym)
 
-    # 4. Gemini プロンプト構築（Structured Outputs）
+    # 4. Gemini プロンプト構築
     us_status_text = "前夜の米国市場は通常取引でした。" if us_open else "【注】前夜の米国市場は祝日休場でした。為替や先物動向を重視してください。"
 
     prompt = f"""
@@ -74,16 +75,14 @@ def main():
 }}
 """
 
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config={"response_mime_type": "application/json"}
-    )
-
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config={"response_mime_type": "application/json"}
+        )
         res_json = json.loads(response.text)
     except Exception as e:
-        # LLMパース失敗時の安全フォールバック（YELLOW判定で防御）
         res_json = {
             "status": "YELLOW",
             "reason": f"AI判定モジュール異常のため警戒モードへフォールバック: {type(e).__name__}",
@@ -105,8 +104,8 @@ def main():
         f"・ドル円: {market_snapshot['USD_JPY']['close']}円"
     )
 
-    send_notification(title="【朝の地合いゲート判定】", message=body, color_level=status)
-    print("日次地合い判定が正常に完了し、通知を送信しました。")
+    send_notification(title="朝の地合いゲート判定", message=body, color_level=status)
+    print("日次地合い判定が正常に完了し、通知処理を実行しました。")
 
 if __name__ == "__main__":
     main()
