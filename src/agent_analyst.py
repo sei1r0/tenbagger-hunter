@@ -11,6 +11,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from google import genai
+from google.genai import types
 from jinja2 import Template
 from src.utils.notifier import send_flex_carousel
 
@@ -275,7 +276,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 def clean_and_parse_json(text):
-    """Geminiの出力から余分なMarkdownを除去して安全にJSON変換"""
     try:
         cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
         cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
@@ -287,7 +287,7 @@ def analyze_stock_with_gemini(client, stock_info):
     """
     戻り値: (結果辞書, 状態コード)
       "SUCCESS"     : 正常取得
-      "FATAL_ERROR" : 429クォータ超過・認証エラー（即時全停止）
+      "FATAL_ERROR" : 429クォータ超過・401/403認証エラー（即時全停止）
       "RETRY_ERROR" : 一時的な通信障害等
     """
     prompt = f"""
@@ -372,7 +372,11 @@ def main():
         print("[CRITICAL ERROR] GEMINI_API_KEY が設定されていません。処理を中断します。")
         sys.exit(1)
 
-    client = genai.Client(api_key=api_key)
+    # HTTPタイムアウト（15秒）を設定してソケット無応答による永久ハングを防止
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=15000)
+    )
 
     analyzed_stocks = []
     consecutive_transient_errors = 0

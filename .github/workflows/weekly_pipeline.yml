@@ -6,12 +6,18 @@ on:
     - cron: '0 22 * * 5'
   workflow_dispatch:
 
+# 同時起動時の多重プッシュ・二重通知を防ぐ排他制御
+concurrency:
+  group: weekly-pipeline
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # 万一の通信ハング時に10分で強制停止
 
     steps:
       - name: Checkout Repository
@@ -63,5 +69,6 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "chore: auto-update screened data and dashboard report [skip ci]"
+            git pull --rebase origin main
             git push origin main
           fi

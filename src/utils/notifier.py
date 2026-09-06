@@ -58,7 +58,11 @@ def send_flex_carousel(title, top_stocks, pages_url):
     for idx, s in enumerate(top_stocks, 1):
         a = s.get("analysis", {})
         tags = " / ".join(a.get("theme_tags", [s.get("sector", "注目株")]))
-        growth_story = a.get("growth_story", "最新チャートと売買代金の動向を確認してください。")
+        
+        # LINE Flex Message 容量制限（400エラー）を防ぐ文字数制限ガード
+        growth_story = a.get("growth_story", "最新チャートと出来高動向をチェックしてください。")
+        if len(growth_story) > 120:
+            growth_story = growth_story[:117] + "..."
 
         bubble = {
             "type": "bubble",
@@ -158,7 +162,6 @@ def send_flex_carousel(title, top_stocks, pages_url):
         }
         bubbles.append(bubble)
 
-    # LINEカルーセル形式（最大5枚まで）
     flex_contents = {
         "type": "carousel",
         "contents": bubbles[:5]
