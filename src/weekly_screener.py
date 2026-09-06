@@ -456,10 +456,30 @@ def run_batch_screener():
     # 複合モメンタムスコア順にソート
     candidates.sort(key=lambda x: x["momentum_score"], reverse=True)
 
-    # 上位20銘柄に厳選
-    if len(candidates) > TARGET_POOL_LIMIT:
-        print(f"[INFO] 候補 {len(candidates)} 件から厳選上位 {TARGET_POOL_LIMIT} 銘柄を最終選定しました。")
-        candidates = candidates[:TARGET_POOL_LIMIT]
+    # セクター集中ガード（同一33業種セクターの最大選定数を5銘柄に制限し、分散リスクを制御）
+    MAX_PER_SECTOR = 5
+    sector_counts = {}
+    selected_candidates = []
+    overflow_candidates = []
+
+    for c in candidates:
+        sec = c.get("sector", "その他")
+        if sector_counts.get(sec, 0) < MAX_PER_SECTOR:
+            selected_candidates.append(c)
+            sector_counts[sec] = sector_counts.get(sec, 0) + 1
+        else:
+            overflow_candidates.append(c)
+
+    # 20銘柄に満たない場合は次点から補充
+    if len(selected_candidates) < TARGET_POOL_LIMIT and overflow_candidates:
+        needed = TARGET_POOL_LIMIT - len(selected_candidates)
+        selected_candidates.extend(overflow_candidates[:needed])
+
+    if len(selected_candidates) > TARGET_POOL_LIMIT:
+        selected_candidates = selected_candidates[:TARGET_POOL_LIMIT]
+
+    candidates = selected_candidates
+    print(f"[INFO] セクター集中ガード適用後: 上位 {len(candidates)} 銘柄を最終選定 (セクター数: {len(sector_counts)})")
 
     os.makedirs(os.path.dirname(OUTPUT_JSON), exist_ok=True)
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:

@@ -15,10 +15,23 @@ def update_jpx_stock_list():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
 
+    def fallback_to_existing_csv(reason):
+        if os.path.exists(OUTPUT_CSV):
+            try:
+                df_exist = pd.read_csv(OUTPUT_CSV)
+                print(f"[WARN] {reason}")
+                print(f"[WARN] 既存の銘柄リスト ({len(df_exist)} 銘柄) を再利用してパイプラインを継続します。")
+                return True
+            except Exception:
+                pass
+        return False
+
     try:
         page_res = requests.get(PAGE_URL, headers=headers, timeout=20)
         page_res.raise_for_status()
     except Exception as e:
+        if fallback_to_existing_csv(f"JPX親ページの取得に失敗しました: {e}"):
+            return
         print(f"[ERROR] JPX親ページの取得に失敗しました: {e}")
         return
 
@@ -29,6 +42,8 @@ def update_jpx_stock_list():
         match = re.search(r'href="([^"]*data_j\.[a-z]+)"', page_res.text)
 
     if not match:
+        if fallback_to_existing_csv("ページ内から銘柄一覧ファイルのリンクを検出できませんでした。"):
+            return
         print("[ERROR] ページ内から銘柄一覧ファイルのリンクを検出できませんでした。")
         return
 
@@ -37,15 +52,25 @@ def update_jpx_stock_list():
     print(f"[INFO] 最新のファイルURLを特定: {file_url}")
 
     print("[INFO] 銘柄一覧ファイルをダウンロード中...")
-    file_res = requests.get(file_url, headers=headers, timeout=30)
-    if file_res.status_code != 200:
-        print(f"[ERROR] ファイルのダウンロードに失敗しました (Status: {file_res.status_code})")
+    try:
+        file_res = requests.get(file_url, headers=headers, timeout=30)
+        if file_res.status_code != 200:
+            if fallback_to_existing_csv(f"ファイルのダウンロードに失敗しました (Status: {file_res.status_code})"):
+                return
+            print(f"[ERROR] ファイルのダウンロードに失敗しました (Status: {file_res.status_code})")
+            return
+    except Exception as e:
+        if fallback_to_existing_csv(f"ファイルダウンロード通信エラー: {e}"):
+            return
+        print(f"[ERROR] ファイルダウンロード通信エラー: {e}")
         return
 
     # Excelパース
     try:
         df = pd.read_excel(io.BytesIO(file_res.content), dtype=str)
     except Exception as e:
+        if fallback_to_existing_csv(f"Excelの読み込みに失敗しました: {e}"):
+            return
         print(f"[ERROR] Excelの読み込みに失敗しました: {e}")
         return
 

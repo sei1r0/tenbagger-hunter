@@ -288,8 +288,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
   <div class="container">
     <header>
-      <h1>🎯 Tenbagger Hunter Pro 厳選AIレポート</h1>
-      <div class="updated">生成日時: {{ generated_at }} | 厳選プール: {{ total_screened }}件</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h1>🎯 Tenbagger Hunter Pro 厳選AIレポート</h1>
+          <div class="updated">生成日時: {{ generated_at }} | 厳選プール: {{ total_screened }}件</div>
+        </div>
+        {% if archive_dates and archive_dates|length > 1 %}
+        <div style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+          <label style="font-size: 0.75rem; color: var(--text-sub); display: block; margin-bottom: 2px;">📅 レポート履歴</label>
+          <select id="archiveSelect" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.8rem;">
+            {% for d in archive_dates %}
+              <option value="{{ d }}" {% if loop.first %}selected{% endif %}>{{ d }}{% if loop.first %} (最新週){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+      </div>
     </header>
 
     <!-- 主要指数パネル -->
@@ -361,6 +375,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </table>
       </div>
       {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 📊 セクター分散・構成比バー -->
+    {% if sector_dist %}
+    <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+      <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: bold;">📊 セクター分散:</span>
+      {% for sec, count in sector_dist.items() %}
+        <span class="pill pill-theme" style="font-size: 0.72rem;">{{ sec }} ({{ count }}件)</span>
+      {% endfor %}
     </div>
     {% endif %}
 
@@ -585,7 +609,7 @@ def clean_and_parse_json(text):
     except Exception:
         return None
 
-def analyze_stock_with_gemini(client, stock_info):
+def analyze_stock_with_gemini(client, stock_info, macro_context=""):
     vcp_status = "点灯中（売り圧力枯渇・ブレイクアウト直前）" if stock_info.get("is_vcp") else "通常推移"
     psr_str = f"{stock_info.get('psr')}倍" if stock_info.get("psr") else "算出外"
     pe_str = f"{stock_info.get('trailing_pe')}倍" if stock_info.get("trailing_pe") else "算出外"
@@ -616,10 +640,14 @@ def analyze_stock_with_gemini(client, stock_info):
         earnings_str = "通常期"
 
     margin_str = "個人投資家の信用しこり玉が極めて少なく、大口の買い集めが進行（需給良好）" if stock_info.get("is_clean_margin") else "通常需給"
+    macro_info = macro_context if macro_context else "新興市場・マクロ相場は通常サイクル推移"
 
     prompt = f"""
 あなたはお急成長小型株（テンバガー）投資のトップクオンツ＆ファンダメンタルズスペシャリストです。
-以下の企業スペック、需給指標（RS/VCP/浮動株）、トレンド構造（Stage 2/GC）、創業者比率、決算スケジュール、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+以下のマクロ市場環境、企業スペック、需給指標（RS/VCP/浮動株）、トレンド構造（Stage 2/GC）、創業者比率、決算スケジュールに基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+
+【現在のマクロ市場環境】
+{macro_info}
 
 【対象銘柄スペック】
 銘柄コード: {stock_info['code']}
@@ -730,13 +758,20 @@ def main():
         http_options=types.HttpOptions(timeout=15000)
     )
 
+    # 主要マクロ指数のサマリーコンテキスト生成
+    macro_parts = []
+    for m in market_indices:
+        sign = "+" if m.get("week_diff", 0) > 0 else ""
+        macro_parts.append(f"{m['name']}: {m['display_val']} (前週比: {sign}{m.get('week_pct', 0)}%)")
+    macro_context = " / ".join(macro_parts)
+
     analyzed_stocks = []
     consecutive_transient_errors = 0
-    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析（Red-Teamディベート）を開始...")
+    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析（マクロ連動Red-Teamディベート）を開始...")
 
     for item in candidates:
         print(f"  -> 分析中: {item['code']} {item['name']}")
-        analysis, status = analyze_stock_with_gemini(client, item)
+        analysis, status = analyze_stock_with_gemini(client, item, macro_context)
         
         if status == "FATAL_ERROR":
             print("[FATAL] クォータ枯渇または認証エラーを検知。緊急遮断します。")
@@ -771,6 +806,12 @@ def main():
 
     analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
 
+    # セクター分布集計
+    sector_dist = {}
+    for s in analyzed_stocks:
+        sec = s.get("sector", "その他")
+        sector_dist[sec] = sector_dist.get(sec, 0) + 1
+
     # 週次アーカイブ保存 ＆ トラックレコード集計
     try:
         archive_weekly_results(analyzed_stocks)
@@ -779,16 +820,27 @@ def main():
         print(f"[WARN] トラックレコード処理エラー: {e}")
         track_record = None
 
+    # 過去アーカイブ日付一覧の取得
+    import glob
+    history_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "history", "*.json"))
+    archive_dates = sorted([os.path.splitext(os.path.basename(f))[0] for f in history_files], reverse=True)
+    today_str = get_jst_now().strftime("%Y-%m-%d")
+    if today_str not in archive_dates:
+        archive_dates.insert(0, today_str)
+
     # HTML出力
     os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
     template = Template(HTML_TEMPLATE, autoescape=True)
     now_str = get_jst_now().strftime("%Y-%m-%d %H:%M JST")
     html_output = template.render(
         generated_at=now_str,
+        today_date=today_str,
         total_screened=len(candidates),
         analyzed_stocks=analyzed_stocks,
         market_indices=market_indices,
-        track_record=track_record
+        track_record=track_record,
+        sector_dist=sector_dist,
+        archive_dates=archive_dates
     )
 
     with open(OUTPUT_HTML_PATH, "w", encoding="utf-8") as f:

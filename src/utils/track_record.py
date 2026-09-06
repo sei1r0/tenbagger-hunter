@@ -78,15 +78,15 @@ def calculate_track_record():
             "records": []
         }
 
-    # 各銘柄の最新株価・最高値を取得
+    # 各銘柄の日足ヒストリカルデータを取得
     unique_codes = list(set([item["code"] for item in all_recommendations.values()]))
     tickers = [f"{c}.T" for c in unique_codes]
 
-    latest_prices = {}
+    stock_dfs = {}
     try:
         data = yf.download(
             tickers=tickers,
-            period="3mo",
+            period="6mo",
             interval="1d",
             group_by="ticker",
             auto_adjust=True,
@@ -103,10 +103,7 @@ def calculate_track_record():
                 df = data[sym].dropna()
             
             if not df.empty:
-                latest_prices[c] = {
-                    "curr_price": float(df["Close"].iloc[-1]),
-                    "high_price": float(df["High"].max())
-                }
+                stock_dfs[c] = df
     except Exception as e:
         print(f"[WARN] トラックレコード株価取得エラー: {e}")
 
@@ -117,16 +114,55 @@ def calculate_track_record():
 
     for key, item in all_recommendations.items():
         code = item["code"]
-        rec_p = item["recommend_price"]
-        p_info = latest_prices.get(code, {"curr_price": rec_p, "high_price": rec_p})
-        curr_p = p_info["curr_price"]
-        high_p = max(p_info["high_price"], curr_p, rec_p)
+        rec_p = float(item["recommend_price"])
+        stop_loss = float(item.get("stop_loss", 0))
+        rec_date = item.get("date", "2020-01-01")
 
-        max_gain_pct = round(((high_p - rec_p) / max(rec_p, 1)) * 100, 1)
-        curr_gain_pct = round(((curr_p - rec_p) / max(rec_p, 1)) * 100, 1)
+        df = stock_dfs.get(code)
+        if df is None or df.empty:
+            curr_p, high_p, max_gain_pct, curr_gain_pct, status_label = rec_p, rec_p, 0.0, 0.0, "推移中"
+            is_win = False
+        else:
+            try:
+                rec_dt = pd.to_datetime(rec_date).tz_localize(df.index.tz) if df.index.tz else pd.to_datetime(rec_date)
+                df_sub = df[df.index >= rec_dt]
+                if df_sub.empty:
+                    df_sub = df.iloc[-5:]
+            except Exception:
+                df_sub = df
 
-        # 判定: +10%以上達成で利確・勝ち認定
-        is_win = bool(max_gain_pct >= 10.0 or curr_gain_pct >= 5.0)
+            curr_p = float(df_sub["Close"].iloc[-1])
+            high_p = float(df_sub["High"].max())
+            max_gain_pct = round(((high_p - rec_p) / max(rec_p, 1)) * 100, 1)
+            curr_gain_pct = round(((curr_p - rec_p) / max(rec_p, 1)) * 100, 1)
+
+            # 時系列損切り・利確シミュレーション（Execution-Aware Backtest）
+            status_label = "推移中"
+            is_win = False
+
+            for _, row_bar in df_sub.iterrows():
+                bar_low = float(row_bar["Low"])
+                bar_high = float(row_bar["High"])
+
+                # A. 損切りライン到達が先か？
+                if stop_loss > 0 and bar_low <= stop_loss:
+                    status_label = "損切執行"
+                    is_win = False
+                    break
+
+                # B. +10%利確ターゲット到達が先か？
+                if bar_high >= (rec_p * 1.10):
+                    status_label = "利確達成 (+10%超)"
+                    is_win = True
+                    break
+
+            if status_label == "推移中":
+                if curr_gain_pct >= 5.0:
+                    status_label = "含み益堅調"
+                    is_win = True
+                elif curr_gain_pct <= -5.0:
+                    status_label = "調整中"
+
         if is_win:
             win_count += 1
         
@@ -134,9 +170,6 @@ def calculate_track_record():
             tenbagger_candidates += 1
 
         total_max_gain += max_gain_pct
-
-        stop_loss = item.get("stop_loss", 0)
-        status_label = "利確圏 (+10%超)" if max_gain_pct >= 10.0 else ("損切執行" if stop_loss > 0 and curr_p <= stop_loss else "推移中")
 
         evaluated_records.append({
             "date": item["date"],
