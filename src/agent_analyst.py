@@ -120,6 +120,26 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       font-size: 0.82rem;
       border: 1px solid rgba(16, 185, 129, 0.4);
     }
+    .preset-btn-group {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .preset-btn {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      padding: 2px 7px;
+      font-size: 0.72rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .preset-btn.active { background: #0284c7; color: #fff; font-weight: bold; }
     .pos-size-box {
       background: rgba(16, 185, 129, 0.06);
       border: 1px dashed rgba(16, 185, 129, 0.35);
@@ -727,8 +747,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
         <div class="calc-group">
           <label style="color: var(--text-sub); font-size: 0.8rem;">許容リスク率:</label>
-          <input type="number" id="calcRiskPct" class="calc-input" value="2.0" step="0.5" min="0.5" max="10.0" style="width: 65px;" oninput="updatePositionSizes()">
+          <input type="number" id="calcRiskPct" class="calc-input" value="2.0" step="0.5" min="0.5" max="10.0" style="width: 55px;" oninput="updatePositionSizes()">
           <span style="font-size: 0.8rem; color: var(--text-sub);">%</span>
+          <div class="preset-btn-group">
+            <button type="button" class="preset-btn" id="preset-05" onclick="setRiskPctPreset(0.5)">0.5%</button>
+            <button type="button" class="preset-btn" id="preset-10" onclick="setRiskPctPreset(1.0)">1.0%</button>
+            <button type="button" class="preset-btn active" id="preset-20" onclick="setRiskPctPreset(2.0)">2.0%</button>
+          </div>
         </div>
         <div class="calc-badge">
           1銘柄の許容損失: <strong id="calcRiskBudgetDisplay" style="color: #fff;">20,000 円</strong>
@@ -760,7 +785,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       </div>
       <div class="controls-right">
         <button type="button" class="btn-link" id="privacyBtn" onclick="togglePrivacyMode()" title="個人資産・ロット計算結果の画面伏字マスク">👁️ プライバシー: 表示中</button>
-        <button type="button" class="btn-link" onclick="copyStockCodes()" title="SBI証券/楽天証券/TradingViewへ一括インポート可能">📋 コード一括コピー</button>
+        <button type="button" class="btn-link" onclick="copyStarredCodes()" title="★お気に入り登録した銘柄コードのみをコピー">⭐ お気に入りコピー</button>
+        <button type="button" class="btn-link" onclick="copyStockCodes()" title="SBI証券/楽天証券/TradingViewへ一括インポート可能">📋 全コードコピー</button>
         <button type="button" class="btn-link" onclick="exportCsv()">📥 CSVエクスポート</button>
         <button type="button" class="btn-link" id="starFilterBtn" onclick="toggleStarFilter()">⭐ お気に入り</button>
       </div>
@@ -1264,6 +1290,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       });
     }
 
+    function setRiskPctPreset(val) {
+      const riskPctInput = document.getElementById("calcRiskPct");
+      if (riskPctInput) {
+        riskPctInput.value = val;
+      }
+      document.querySelectorAll(".preset-btn").forEach(btn => btn.classList.remove("active"));
+      if (val === 0.5) document.getElementById("preset-05")?.classList.add("active");
+      else if (val === 1.0) document.getElementById("preset-10")?.classList.add("active");
+      else if (val === 2.0) document.getElementById("preset-20")?.classList.add("active");
+      updatePositionSizes();
+    }
+
     function copyStockCodes() {
       const cards = Array.from(document.querySelectorAll("#cardsContainer .card"))
         .filter(c => c.style.display !== "none");
@@ -1281,6 +1319,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }).catch(() => fallbackCopy(text, codes.length));
       } else {
         fallbackCopy(text, codes.length);
+      }
+    }
+
+    function copyStarredCodes() {
+      const starred = getStarredCodes();
+      if (starred.length === 0) {
+        showToast("⭐ お気に入り登録された銘柄がありません。☆ボタンで追加してください。");
+        return;
+      }
+      const text = starred.join(", ");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(`⭐ ${starred.length}件のお気に入り銘柄コードをコピーしました！`);
+        }).catch(() => fallbackCopy(text, starred.length));
+      } else {
+        fallbackCopy(text, starred.length);
       }
     }
 
@@ -1302,7 +1356,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         return;
       }
 
-      let csv = "\uFEFFコード,銘柄名,市場,業種,確信度,スコア,現在株価,買値目安,注文種別,損切りライン,TP1利確(+20%),TP2利確(+50%),TP3戦略,リスクリワード,売上成長率,時価総額(億)\n";
+      let csv = "\uFEFFコード,銘柄名,市場,業種,確信度,スコア,現在株価,買値目安,注文種別,損切りライン,TP1利確(+20%),TP2利確(+50%),TP3戦略,リスクリワード,売上成長率,時価総額(億),RS相対力,営業利益率,参入障壁(Moat),健全性(NetCash),獲得可能市場(TAM)\n";
 
       cards.forEach(c => {
         const code = c.dataset.code || "";
@@ -1314,9 +1368,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const score = c.dataset.score || "";
         const growth = c.dataset.growth || "";
         const mcap = c.dataset.marketCap || "";
+        const rs = c.dataset.rs || "0";
 
         const statVals = Array.from(c.querySelectorAll(".stat-val")).map(el => el.textContent.trim());
         const price = (statVals[0] || "").replace("円", "");
+        const opMargin = (statVals[3] || "").replace(/[+%\s]/g, "");
         const entryText = statVals[6] || "";
         const entry = entryText.split("/")[0]?.trim() || "";
         const stop = (entryText.split("/")[1]?.trim() || "").replace("円", "");
@@ -1327,6 +1383,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const tp1 = (tpVals[0] || "").replace("円", "");
         const tp2 = (tpVals[1] || "").replace("円", "");
         const tp3 = tpVals[2] || "";
+
+        const quantLabels = Array.from(c.querySelectorAll(".quant-axis-item .quant-axis-label span:nth-child(2)")).map(el => el.textContent.trim());
+        const moatVal = quantLabels[3] || "MEDIUM";
+        const safeVal = quantLabels[4] || "標準";
+        const tamText = (c.querySelector(".tam-bar")?.textContent || "").replace("🌐 獲得可能市場 (TAM):", "").trim();
 
         const row = [
           `"${code}"`,
@@ -1344,7 +1405,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           `"${tp3}"`,
           `"${rr}"`,
           `"${growth}%"`,
-          `"${mcap}"`
+          `"${mcap}"`,
+          `"+${rs}%"`,
+          `"${opMargin}%"`,
+          `"${moatVal}"`,
+          `"${safeVal}"`,
+          `"${tamText}"`
         ];
         csv += row.join(",") + "\n";
       });
@@ -1879,6 +1945,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="icon">⭐</span>
       <span>お気に入り</span>
     </button>
+    <button type="button" class="mobile-btn" onclick="copyStarredCodes()">
+      <span class="icon">📑</span>
+      <span>★コピー</span>
+    </button>
     <button type="button" class="mobile-btn" onclick="focusSearch()">
       <span class="icon">🔍</span>
       <span>銘柄検索</span>
@@ -1889,7 +1959,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </button>
     <button type="button" class="mobile-btn" onclick="copyStockCodes()">
       <span class="icon">📋</span>
-      <span>コードコピー</span>
+      <span>全コピー</span>
     </button>
     <button type="button" class="mobile-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
       <span class="icon">⬆</span>
@@ -2132,22 +2202,94 @@ def main():
 
     analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
 
+def sanitize_stock_record(s):
+    """銘柄レコードの全必須フィールドを安全に補完"""
+    rec = dict(s)
+    entry = float(rec.get("entry_price") or rec.get("close") or rec.get("recommend_price") or 1000)
+    stop = float(rec.get("stop_loss") or round(entry * 0.92, 1))
+    rec["close"] = float(rec.get("close") or rec.get("recommend_price") or entry)
+    rec["recommend_price"] = float(rec.get("recommend_price") or rec["close"])
+    rec["market_cap_oku"] = float(rec.get("market_cap_oku") or 50.0)
+    rec["rev_growth_pct"] = float(rec.get("rev_growth_pct") or 25.0)
+    rec["op_margin_pct"] = float(rec.get("op_margin_pct") or 15.0)
+    rec["rs_rating"] = float(rec.get("rs_rating") or 50.0)
+    rec["vol_surge"] = float(rec.get("vol_surge") or 1.2)
+    rec["deviation_25_pct"] = float(rec.get("deviation_25_pct") or 5.0)
+    rec["sma25"] = float(rec.get("sma25") or round(entry * 0.95))
+    rec["high_52w"] = float(rec.get("high_52w") or round(entry * 1.1))
+    rec["up_down_ratio"] = float(rec.get("up_down_ratio") or 1.5)
+    rec["insider_held_pct"] = float(rec.get("insider_held_pct") or 30.0)
+    rec["market"] = rec.get("market", "グロース")
+    rec["sector"] = rec.get("sector", "情報・通信業")
+    rec["badge"] = rec.get("badge", "NEW")
+    
+    a = rec.get("analysis") or {}
+    rec["analysis"] = {
+        "score": a.get("score") or rec.get("score") or 75,
+        "conviction_tier": a.get("conviction_tier") or rec.get("conviction_tier") or "A",
+        "entry_price": float(a.get("entry_price") or entry),
+        "stop_loss": float(a.get("stop_loss") or stop),
+        "order_type": a.get("order_type") or "押し目・ブレイク",
+        "take_profit_tp1": float(a.get("take_profit_tp1") or round(entry * 1.2)),
+        "take_profit_tp2": float(a.get("take_profit_tp2") or round(entry * 1.5)),
+        "take_profit_tp3": a.get("take_profit_tp3") or "25MA割れまでトレイリングストップ追従",
+        "risk_reward_ratio": float(a.get("risk_reward_ratio") or 3.0),
+        "moat_rating": a.get("moat_rating") or "MEDIUM",
+        "tam_scale": a.get("tam_scale") or f"{rec['sector']}関連市場",
+        "theme_tags": a.get("theme_tags") or [rec["sector"]],
+        "growth_story": a.get("growth_story") or f"{rec.get('name', '')}はモメンタムと出来高水準を維持。独自事業の進捗が注目点。",
+        "risk_factors": a.get("risk_factors") or "テクニカル算定値を表示中。"
+    }
+    return rec
+
+def render_report_html(analyzed_stocks=None, market_indices=None, track_record=None, output_path=OUTPUT_HTML_PATH):
+    """ダッシュボードHTMLを再描画・出力する汎用関数（平日大引け＆週末AI分析共通）"""
+    import glob
+    
+    if analyzed_stocks is None:
+        if os.path.exists(CANDIDATES_FILE):
+            try:
+                with open(CANDIDATES_FILE, "r", encoding="utf-8") as f:
+                    raw_stocks = json.load(f)
+                    analyzed_stocks = [sanitize_stock_record(s) for s in raw_stocks]
+            except Exception:
+                analyzed_stocks = []
+        
+        if not analyzed_stocks:
+            history_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "history", "*.json"))
+            if history_files:
+                latest_history_file = sorted(history_files)[-1]
+                try:
+                    with open(latest_history_file, "r", encoding="utf-8") as f:
+                        raw_stocks = json.load(f)
+                        analyzed_stocks = [sanitize_stock_record(s) for s in raw_stocks]
+                except Exception:
+                    analyzed_stocks = []
+
+    if analyzed_stocks is None:
+        analyzed_stocks = []
+    else:
+        analyzed_stocks = [sanitize_stock_record(s) for s in analyzed_stocks]
+
+    if market_indices is None:
+        try:
+            market_indices = fetch_market_indices()
+        except Exception:
+            market_indices = []
+
+    if track_record is None:
+        try:
+            track_record = calculate_track_record()
+        except Exception:
+            track_record = {}
+
     # セクター分布集計
     sector_dist = {}
     for s in analyzed_stocks:
         sec = s.get("sector", "その他")
         sector_dist[sec] = sector_dist.get(sec, 0) + 1
 
-    # 週次アーカイブ保存 ＆ トラックレコード集計
-    try:
-        archive_weekly_results(analyzed_stocks)
-        track_record = calculate_track_record()
-    except Exception as e:
-        print(f"[WARN] トラックレコード処理エラー: {e}")
-        track_record = None
-
     # 過去アーカイブ日付一覧および全履歴データの取得
-    import glob
     history_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "history", "*.json"))
     archive_dates = sorted([os.path.splitext(os.path.basename(f))[0] for f in history_files], reverse=True)
     today_str = get_jst_now().strftime("%Y-%m-%d")
@@ -2159,13 +2301,14 @@ def main():
         d_name = os.path.splitext(os.path.basename(hf))[0]
         try:
             with open(hf, "r", encoding="utf-8") as f:
-                all_history_map[d_name] = json.load(f)
+                raw_items = json.load(f)
+                all_history_map[d_name] = [sanitize_stock_record(item) for item in raw_items]
         except Exception:
             pass
     all_history_json = json.dumps(all_history_map, ensure_ascii=False)
 
     # 地合い連動キャッシュポジション戦略の算定
-    avg_week_pct = sum([m.get("week_diff", 0) for m in market_indices]) / max(len(market_indices), 1)
+    avg_week_pct = sum([m.get("week_diff", 0) for m in market_indices]) / max(len(market_indices), 1) if market_indices else 0.0
     if avg_week_pct >= 0.5:
         cash_strategy = {
             "status": "GREEN",
@@ -2191,14 +2334,13 @@ def main():
             "guideline": "指数全体が調整局面。新規買いは手控え、保有株の損切りライン徹底とキャッシュ比率高めの維持を最優先。"
         }
 
-    # HTML出力
-    os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     template = Template(HTML_TEMPLATE, autoescape=True)
     now_str = get_jst_now().strftime("%Y-%m-%d %H:%M JST")
     html_output = template.render(
         generated_at=now_str,
         today_date=today_str,
-        total_screened=len(candidates),
+        total_screened=len(analyzed_stocks),
         analyzed_stocks=analyzed_stocks,
         market_indices=market_indices,
         cash_strategy=cash_strategy,
@@ -2208,11 +2350,107 @@ def main():
         all_history_json=all_history_json
     )
 
-    with open(OUTPUT_HTML_PATH, "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_output)
 
-    file_size = os.path.getsize(OUTPUT_HTML_PATH)
-    print(f"[INFO] レポート出力完了: {OUTPUT_HTML_PATH} ({file_size} bytes)")
+    file_size = os.path.getsize(output_path)
+    print(f"[INFO] レポート出力完了: {output_path} ({file_size} bytes)")
+    return output_path
+
+def main():
+    print(f"[INFO] 候補ファイル確認: {CANDIDATES_FILE}")
+    if not os.path.exists(CANDIDATES_FILE):
+        print(f"[ERROR] {CANDIDATES_FILE} が見つかりません。")
+        sys.exit(1)
+
+    with open(CANDIDATES_FILE, "r", encoding="utf-8") as f:
+        candidates = json.load(f)
+
+    print(f"[INFO] スクリーニング候補: {len(candidates)}件")
+    if not candidates:
+        print("[INFO] 候補が0件のため終了します。")
+        return
+
+    if len(candidates) > MAX_AI_ANALYZE:
+        candidates = candidates[:MAX_AI_ANALYZE]
+
+    # 指数データの取得
+    print("[INFO] 主要マクロ指数のパフォーマンスを取得中...")
+    market_indices = fetch_market_indices()
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        print("[CRITICAL ERROR] GEMINI_API_KEY が設定されていません。")
+        sys.exit(1)
+
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=15000)
+    )
+
+    # 主要マクロ指数のサマリーコンテキスト生成
+    macro_parts = []
+    for m in market_indices:
+        sign = "+" if m.get("week_diff", 0) > 0 else ""
+        macro_parts.append(f"{m['name']}: {m['display_val']} (前週比: {sign}{m.get('week_pct', 0)}%)")
+    macro_context = " / ".join(macro_parts)
+
+    analyzed_stocks = []
+    consecutive_transient_errors = 0
+    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析（マクロ連動Red-Teamディベート）を開始...")
+
+    for item in candidates:
+        print(f"  -> 分析中: {item['code']} {item['name']}")
+        analysis, status = analyze_stock_with_gemini(client, item, macro_context)
+        
+        if status == "FATAL_ERROR":
+            print("[FATAL] クォータ枯渇または認証エラーを検知。緊急遮断します。")
+            sys.exit(1)
+
+        if status == "RETRY_ERROR":
+            consecutive_transient_errors += 1
+            print(f"[WARN] 一時的APIエラー (連続 {consecutive_transient_errors}/{MAX_TRANSIENT_ERRORS})")
+            if consecutive_transient_errors >= MAX_TRANSIENT_ERRORS:
+                print("[FATAL] 連続API障害のため緊急遮断します。")
+                sys.exit(1)
+            
+            entry = item['close']
+            stop = round(float(item['close']) * 0.92, 1)
+            analysis = {
+                "score": 75,
+                "conviction_tier": "B",
+                "theme_tags": [item["sector"]],
+                "tam_scale": f"{item['sector']}関連領域",
+                "moat_rating": "MEDIUM",
+                "growth_story": f"{item['name']}はモメンタムと出来高水準を維持。独自事業の進捗が注目点。",
+                "risk_factors": "一時的な通信エラーのためテクニカル算定値を暫定表示。",
+                "entry_price": entry,
+                "order_type": "押し目・ブレイク",
+                "stop_loss": stop,
+                "take_profit_tp1": round(float(entry) * 1.2),
+                "take_profit_tp2": round(float(entry) * 1.5),
+                "take_profit_tp3": "25MA割れまでトレイリングストップ追従",
+                "risk_reward_ratio": 3.0
+            }
+        else:
+            consecutive_transient_errors = 0
+
+        item['analysis'] = analysis
+        analyzed_stocks.append(item)
+        time.sleep(0.3)
+
+    analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
+
+    # 週次アーカイブ保存 ＆ トラックレコード集計
+    try:
+        archive_weekly_results(analyzed_stocks)
+        track_record = calculate_track_record()
+    except Exception as e:
+        print(f"[WARN] トラックレコード処理エラー: {e}")
+        track_record = None
+
+    # HTML出力
+    render_report_html(analyzed_stocks=analyzed_stocks, market_indices=market_indices, track_record=track_record)
 
     # LINE Flex Message 送信（指数カード ＋ 厳選個別株）
     repo_name = os.getenv("GITHUB_REPOSITORY", "sei1r0/tenbagger-hunter")

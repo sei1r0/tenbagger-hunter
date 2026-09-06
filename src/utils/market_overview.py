@@ -3,6 +3,24 @@ import yfinance as yf
 
 TARGET_INDICES = [
     {
+        "name": "日経平均",
+        "desc": "東証主力 (^N225)",
+        "ticker": "^N225",
+        "unit": "円",
+        "prefix": "",
+        "format": "{:,.1f}",
+        "icon": "🇯🇵"
+    },
+    {
+        "name": "グロース250",
+        "desc": "東証新興250 (ETF:2516)",
+        "ticker": "2516.T",
+        "unit": "円",
+        "prefix": "",
+        "format": "{:,.1f}",
+        "icon": "🌱"
+    },
+    {
         "name": "S&P500",
         "desc": "米国主要500社株価指数",
         "ticker": "^GSPC",
