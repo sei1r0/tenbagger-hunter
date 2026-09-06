@@ -131,6 +131,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .pill-vcp { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); font-weight: bold; }
     .pill-rs { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); }
     .pill-founder { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .pill-cash { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .pill-turnaround { background: rgba(234, 179, 8, 0.18); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+    .pill-light { background: rgba(244, 114, 182, 0.18); color: #f472b6; border: 1px solid rgba(244, 114, 182, 0.4); }
 
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
@@ -287,6 +290,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             <!-- クオンツ・需給・Moatタグ -->
             <div class="quant-tags">
+              {% if stock.is_ultra_light %}
+                <span class="pill pill-light">🎈 浮動株 {{ stock.float_mcap_oku }}億 (超軽量)</span>
+              {% endif %}
               {% if stock.is_vcp %}
                 <span class="pill pill-vcp">🔥 VCP売り枯れ点灯</span>
               {% endif %}
@@ -294,6 +300,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               <span class="pill pill-moat">🏰 参入障壁: {{ stock.analysis.moat_rating }}</span>
               {% if stock.insider_held_pct and stock.insider_held_pct >= 20 %}
                 <span class="pill pill-founder">👑 創業者等: {{ stock.insider_held_pct }}%</span>
+              {% endif %}
+              {% if stock.is_net_cash %}
+                <span class="pill pill-cash">💰 実質無借金 (NetCash)</span>
+              {% endif %}
+              {% if stock.is_turnaround %}
+                <span class="pill pill-turnaround">⚡ 黒字成長モメンタム</span>
               {% endif %}
               {% for tag in stock.analysis.theme_tags %}
                 <span class="pill pill-theme">#{{ tag }}</span>
@@ -424,10 +436,13 @@ def analyze_stock_with_gemini(client, stock_info):
     pe_str = f"{stock_info.get('trailing_pe')}倍" if stock_info.get("trailing_pe") else "算出外"
     insider_str = f"{stock_info.get('insider_held_pct')}%" if stock_info.get("insider_held_pct") else "未開示/微小"
     summary_str = stock_info.get("business_summary") or "新興成長企業"
+    float_str = f"{stock_info.get('float_mcap_oku')}億円（超軽量需給）" if stock_info.get("is_ultra_light") else f"{stock_info.get('float_mcap_oku', stock_info['market_cap_oku'])}億円"
+    cash_str = "実質無借金（現預金 > 有利子負債、希薄化リスク極小）" if stock_info.get("is_net_cash") else "通常"
+    turnaround_str = "高成長・営業黒字定着" if stock_info.get("is_turnaround") else "通常推移"
 
     prompt = f"""
 あなたは急成長小型株（テンバガー）投資のトップクオンツ＆ファンダメンタルズスペシャリストです。
-以下の企業スペック、需給指標（RS/VCP）、創業者比率、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+以下の企業スペック、需給指標（RS/VCP/浮動株）、創業者比率、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
 
 【対象銘柄スペック】
 銘柄コード: {stock_info['code']}
@@ -437,7 +452,9 @@ def analyze_stock_with_gemini(client, stock_info):
 現在株価: {stock_info['close']}円
 25日移動平均線: {stock_info.get('sma25')}円 (乖離: +{stock_info.get('deviation_25_pct')}%)
 52週最高値: {stock_info.get('high_52w')}円
-時価総額: {stock_info['market_cap_oku']}億円
+時価総額: {stock_info['market_cap_oku']}億円 (推定浮動株時価: {float_str})
+財務健全性（ネットキャッシュ）: {cash_str}
+収益モメンタム: {turnaround_str}
 直近売上高成長率: +{stock_info.get('rev_growth_pct', 0)}%
 直近営業利益率: +{stock_info.get('op_margin_pct', 0)}%
 創業者・役員保有比率: {insider_str}

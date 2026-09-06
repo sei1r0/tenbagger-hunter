@@ -32,11 +32,15 @@ def is_tokyo_market_open(target_date: datetime.date = None) -> bool:
 
 def is_us_market_open_prev_day(target_date: datetime.date = None) -> bool:
     """
-    日本時間の判定時点で、前夜の米国市場（NYSE/NASDAQ）が開場していたかを判定
+    日本時間の判定時点で、直近の米国市場セッション（前夜、月曜朝なら前週金曜夜）が開場していたかを判定
     """
     if target_date is None:
-        # 日本時間の朝7時時点では、米国の日付は前日
-        target_date = (get_jst_now() - datetime.timedelta(days=1)).date()
+        jst_now = get_jst_now()
+        # 月曜日の朝の場合、直近の米国市場は前週金曜日（3日前）
+        if jst_now.weekday() == 0:
+            target_date = (jst_now - datetime.timedelta(days=3)).date()
+        else:
+            target_date = (jst_now - datetime.timedelta(days=1)).date()
 
     if target_date.weekday() >= 5:
         return False

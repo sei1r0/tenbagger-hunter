@@ -124,8 +124,17 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
         tier_label = {"S": "👑 Sランク超本命", "A": "⭐ Aランク有力", "B": "📌 Bランク監視"}.get(tier, "⭐ Aランク")
         moat = a.get("moat_rating", "MEDIUM")
         rs_str = f"RS:+{s.get('rs_rating', 0)}%"
-        vcp_str = " 🔥VCP" if s.get("is_vcp") else ""
-        sub_info = f"Moat:{moat} | {rs_str}{vcp_str}"
+        edge_tags = []
+        if s.get("is_ultra_light"):
+            edge_tags.append(f"🎈浮動{s.get('float_mcap_oku')}億")
+        if s.get("is_vcp"):
+            edge_tags.append("🔥VCP")
+        if s.get("is_net_cash"):
+            edge_tags.append("💰無借金")
+        if s.get("is_turnaround"):
+            edge_tags.append("⚡黒字成長")
+        edge_str = " ".join(edge_tags)
+        sub_info = f"Moat:{moat} | {rs_str}" + (f" | {edge_str}" if edge_str else "")
 
         growth_story = a.get("growth_story", "チャート動向をチェックしてください。")
         if len(growth_story) > 115:

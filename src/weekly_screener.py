@@ -204,6 +204,14 @@ def run_batch_screener():
                     raw_summary = info.get("longBusinessSummary") or info.get("businessSummary") or ""
                     business_summary = raw_summary.strip()[:200]
 
+                    # ネットキャッシュ（実質無借金判定: 現預金 > 有利子負債）
+                    total_cash = info.get("totalCash", 0) or 0
+                    total_debt = info.get("totalDebt", 0) or 0
+                    is_net_cash = bool(total_cash > total_debt and total_cash > 0)
+
+                    # 浮動株時価総額の推定
+                    float_shares = info.get("floatShares", None)
+
                 except Exception:
                     pass
 
@@ -214,6 +222,19 @@ def run_batch_screener():
 
                 # フィルター6: 時価総額 300億円以下
                 if 0 < market_cap_oku <= MAX_MARKET_CAP_OKU:
+                    if float_shares and float(float_shares) > 0:
+                        float_mcap_oku = round((float(float_shares) * curr_close) / 100000000, 1)
+                    elif insider_held_pct > 0:
+                        float_mcap_oku = round(market_cap_oku * (1 - (insider_held_pct / 100)), 1)
+                    else:
+                        float_mcap_oku = market_cap_oku
+
+                    # 需給の軽さ（浮動株時価総額80億円以下の超軽量株）
+                    is_ultra_light = bool(0 < float_mcap_oku <= 80.0)
+
+                    # 営業利益黒字転換・高成長モメンタム（売上成長+15%以上かつ営業利益黒字）
+                    is_turnaround = bool(rev_growth_pct >= 15.0 and op_margin_pct > 0)
+
                     vol3 = float(volumes.iloc[-3:].mean())
                     vol5 = float(volumes.iloc[-5:].mean())
                     vol25 = float(volumes.iloc[-25:].mean())
@@ -234,7 +255,7 @@ def run_batch_screener():
                     high_proximity = round(curr_close / high_52w, 3)
 
                     # テンバガー・プロフェッショナル複合スコア算出
-                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接]
+                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長]
                     turnover_score = min(trading_value_man / max(market_cap_oku, 1), 25.0)
                     surge_score = min(vol_surge * 5, 20.0)
                     growth_bonus = min(max(rev_growth_pct, 0) * 0.6, 20.0)
@@ -244,9 +265,12 @@ def run_batch_screener():
                     vcp_bonus = 10.0 if is_vcp else 0.0
                     founder_bonus = 10.0 if insider_held_pct >= 30 else (5.0 if insider_held_pct >= 15 else 0.0)
                     proximity_bonus = high_proximity * 10.0
+                    float_bonus = 8.0 if is_ultra_light else 0.0
+                    net_cash_bonus = 5.0 if is_net_cash else 0.0
+                    turnaround_bonus = 5.0 if is_turnaround else 0.0
 
                     total_momentum_score = round(
-                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus, 2
+                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus, 2
                     )
 
                     code_str = str(row_meta["code"])
@@ -263,6 +287,7 @@ def run_batch_screener():
                         "sma200": round(sma200, 1),
                         "high_52w": round(high_52w, 1),
                         "market_cap_oku": market_cap_oku,
+                        "float_mcap_oku": float_mcap_oku,
                         "trading_value_man": trading_value_man,
                         "vol_surge": vol_surge,
                         "rev_growth_pct": rev_growth_pct,
@@ -273,6 +298,9 @@ def run_batch_screener():
                         "business_summary": business_summary,
                         "rs_rating": rs_rating,
                         "is_vcp": is_vcp,
+                        "is_ultra_light": is_ultra_light,
+                        "is_net_cash": is_net_cash,
+                        "is_turnaround": is_turnaround,
                         "up_down_ratio": up_down_ratio,
                         "deviation_25_pct": round(deviation_25 * 100, 1),
                         "badge": "STAY" if is_stay else "NEW",
@@ -280,7 +308,8 @@ def run_batch_screener():
                     })
                     vcp_str = " 🔥VCP" if is_vcp else ""
                     founder_str = f" / 創業者:{insider_held_pct}%" if insider_held_pct > 0 else ""
-                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億 / RS:+{rs_rating}% / 売上:+{rev_growth_pct}%{founder_str}{vcp_str} / スコア:{total_momentum_score})")
+                    float_str = f" / 浮動株:{float_mcap_oku}億" if is_ultra_light else ""
+                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}% / 売上:+{rev_growth_pct}%{founder_str}{vcp_str} / スコア:{total_momentum_score})")
 
             except Exception:
                 continue

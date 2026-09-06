@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 import time
 import yfinance as yf
 from google import genai
@@ -162,11 +163,17 @@ def main():
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.6-flash",
             contents=prompt,
             config={"response_mime_type": "application/json"}
         )
-        res_json = json.loads(response.text)
+        match = re.search(r"\{.*\}", response.text, flags=re.DOTALL)
+        if match:
+            res_json = json.loads(match.group(0))
+        else:
+            cleaned = re.sub(r"^```(?:json)?\s*", "", response.text.strip(), flags=re.MULTILINE)
+            cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+            res_json = json.loads(cleaned)
     except Exception as e:
         res_json = {
             "status": "YELLOW",
