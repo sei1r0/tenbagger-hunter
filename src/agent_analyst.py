@@ -49,7 +49,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     h1 { margin: 0 0 0.4rem 0; font-size: 1.6rem; display: flex; align-items: center; gap: 0.5rem; }
     .updated { color: var(--text-sub); font-size: 0.85rem; }
     
-    /* コントロールバー（ソート・検索） */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -70,7 +69,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       font-size: 0.9rem;
     }
     
-    /* 銘柄カード */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -78,7 +76,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       padding: 1.25rem;
       margin-bottom: 1.5rem;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      transition: transform 0.15s ease;
     }
     .card-header {
       display: flex;
@@ -153,7 +150,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="container">
     <header>
       <h1>🎯 Tenbagger Hunter Pro 厳選レポート</h1>
-      <div class="updated">生成日時: {{ generated_at }} | 分析銘柄数: {{ total_screened }}件 (Google検索グラウンディング適用)</div>
+      <div class="updated">生成日時: {{ generated_at }} | 分析銘柄数: {{ total_screened }}件</div>
     </header>
 
     <div class="controls">
@@ -230,7 +227,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <div class="catalyst-box">
-          <strong>【最新IR・カタリスト動向】</strong><br>
+          <strong>【成長ストーリー＆カタリスト】</strong><br>
           {{ stock.analysis.growth_story }}
         </div>
 
@@ -277,6 +274,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 def clean_and_parse_json(text):
+    """Geminiの出力から余分なMarkdownを除去して安全にJSON変換"""
     try:
         cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
         cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
@@ -285,10 +283,10 @@ def clean_and_parse_json(text):
         return None
 
 def analyze_stock_with_gemini(client, stock_info):
-    """Google検索グラウンディングを活用したプロ分析"""
+    """Gemini 3.6-flash を使用したテンバガー潜在力分析（安定・高速版）"""
     prompt = f"""
 あなたは急成長小型株（テンバガー）投資のスペシャリストです。
-直近の適時開示、業績発表、提携ニュースをGoogle検索して確認し、この銘柄の成長爆発力と売買プランを策定してください。
+以下の企業スペックとモメンタム指標に基づき、この銘柄の成長性、テーマ合致度、および売買プランを策定してください。
 
 【対象銘柄】
 銘柄コード: {stock_info['code']}
@@ -297,15 +295,16 @@ def analyze_stock_with_gemini(client, stock_info):
 現在株価: {stock_info['close']}円
 時価総額: {stock_info['market_cap_oku']}億円
 直近売上高成長率: +{stock_info.get('rev_growth_pct', 0)}%
+出来高急増比: {stock_info.get('vol_surge', 1.0)}倍
 
-【出力項目】
+【出力要件】
 1. score: テンバガー潜在力スコア（0〜100）
-2. theme_tags: 合致するテーマ（例: ["AI", "防衛", "DX"] など最大3つ）
-3. growth_story: 直近のIRや市場テーマを踏まえた業績・株価起爆カタリスト（130〜150字程度）
-4. risk_factors: 最大の懸念点（80字程度）
-5. entry_price: テクニカル的な買い目処価格
+2. theme_tags: 合致する市場テーマ（例: ["AI", "DX", "半導体"] など最大3つ）
+3. growth_story: 業績モメンタムや市場テーマを踏まえた株価起爆カタリスト（130〜150字程度）
+4. risk_factors: 最大の警戒リスク要因（80字程度）
+5. entry_price: 押し目またはブレイク買いの目安価格（現在値 {stock_info['close']}円 基準）
 6. stop_loss: 厳格な損切りライン（買値から約 -7%〜-8%）
-7. risk_reward_ratio: 目標株価（+30〜50%以上）と損切り幅から算出するリスクリワード比（数値のみ。例: 3.5）
+7. risk_reward_ratio: 目標株価と損切り幅から算出するリスクリワード比（数値のみ。例: 3.2）
 
 以下のJSONフォーマットのみを返してください。
 {{
@@ -318,14 +317,12 @@ def analyze_stock_with_gemini(client, stock_info):
   "risk_reward_ratio": 3.2
 }}
 """
-    for attempt in range(3):
+    for attempt in range(2):
         try:
-            # Google Search ツールを有効化してリアルタイム検索グラウンディングを実行
             response = client.models.generate_content(
                 model="gemini-3.6-flash",
                 contents=prompt,
                 config={
-                    "tools": [{"google_search": {}}],
                     "response_mime_type": "application/json"
                 }
             )
@@ -337,16 +334,16 @@ def analyze_stock_with_gemini(client, stock_info):
                     res_json["risk_reward_ratio"] = 3.0
                 return res_json
         except Exception as e:
-            print(f"[WARN] Gemini分析 試行 {attempt + 1}/3 失敗 ({stock_info['code']}): {e}")
+            print(f"[WARN] Gemini分析 試行 {attempt + 1}/2 失敗 ({stock_info['code']}): {e}")
             time.sleep(1)
 
-    # フォールバック
+    # 万一失敗した場合のフォールバック
     stop = round(float(stock_info['close']) * 0.92, 1)
     return {
         "score": 75,
         "theme_tags": [stock_info["sector"]],
-        "growth_story": f"{stock_info['name']}は直近売上成長率+{stock_info.get('rev_growth_pct', 0)}%と力強い業績モメンタムを維持。新高値近辺の資金流入が継続。",
-        "risk_factors": "中小型株特有の出来高急減と全体地合い悪化のリスク。",
+        "growth_story": f"{stock_info['name']}は直近売上高成長率+{stock_info.get('rev_growth_pct', 0)}%、出来高急増比{stock_info.get('vol_surge', 1.0)}倍と強いモメンタムを維持。独自事業の進捗が注目点。",
+        "risk_factors": "新興小型株特有の流動性低下および相場地合いの調整リスク。",
         "entry_price": stock_info['close'],
         "stop_loss": stop,
         "risk_reward_ratio": 3.0
@@ -373,7 +370,7 @@ def main():
     client = genai.Client(api_key=api_key) if api_key else None
 
     analyzed_stocks = []
-    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGoogle検索グラウンディング詳細分析を開始...")
+    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析を開始...")
 
     for item in candidates:
         print(f"  -> 分析中: {item['code']} {item['name']}")
