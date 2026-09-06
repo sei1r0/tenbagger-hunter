@@ -4,8 +4,17 @@ import json
 import time
 import yfinance as yf
 from google import genai
-from utils.market_calendar import guard_tokyo_market, is_us_market_open_prev_day
-from utils.notifier import send_notification
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+try:
+    from src.utils.market_calendar import guard_tokyo_market, is_us_market_open_prev_day
+    from src.utils.notifier import send_notification
+except ModuleNotFoundError:
+    from utils.market_calendar import guard_tokyo_market, is_us_market_open_prev_day
+    from utils.notifier import send_notification
 
 def fetch_market_data(ticker_symbol: str, retries=3):
     """レート制限回避のリトライ機構付きデータ取得"""
