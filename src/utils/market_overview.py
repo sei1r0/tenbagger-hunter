@@ -2,12 +2,60 @@ import datetime
 import yfinance as yf
 
 TARGET_INDICES = [
-    {"name": "S&P500", "ticker": "^GSPC", "format": "{:,.1f}"},
-    {"name": "FANG+", "ticker": "FNGS", "format": "{:,.2f}"},
-    {"name": "オルカン", "ticker": "ACWI", "format": "{:,.2f}"},
-    {"name": "金先物", "ticker": "GC=F", "format": "{:,.1f}"},
-    {"name": "ドル円", "ticker": "USDJPY=X", "format": "{:,.2f}"}
+    {
+        "name": "S&P500",
+        "desc": "米国主要500社株価指数",
+        "ticker": "^GSPC",
+        "unit": "pt",
+        "prefix": "",
+        "format": "{:,.1f}",
+        "icon": "🇺🇸"
+    },
+    {
+        "name": "FANG+",
+        "desc": "米メガテック10社 (ETF:FNGS)",
+        "ticker": "FNGS",
+        "unit": "",
+        "prefix": "$",
+        "format": "{:,.2f}",
+        "icon": "🚀"
+    },
+    {
+        "name": "オルカン",
+        "desc": "全世界株式 (ETF:ACWI)",
+        "ticker": "ACWI",
+        "unit": "",
+        "prefix": "$",
+        "format": "{:,.2f}",
+        "icon": "🌍"
+    },
+    {
+        "name": "金先物",
+        "desc": "ゴールド/安全資産 (COMEX)",
+        "ticker": "GC=F",
+        "unit": "",
+        "prefix": "$",
+        "format": "{:,.1f}",
+        "icon": "🥇"
+    },
+    {
+        "name": "ドル円",
+        "desc": "為替レート (USD/JPY)",
+        "ticker": "USDJPY=X",
+        "unit": "円",
+        "prefix": "",
+        "format": "{:,.2f}",
+        "icon": "💴"
+    }
 ]
+
+def format_val_with_unit(val: float, fmt: str, prefix: str, unit: str, sign: bool = False) -> str:
+    s = fmt.format(abs(val))
+    prefix_str = f"{prefix}{s}" if prefix else (f"{s} {unit}" if unit else s)
+    if sign:
+        sign_char = "+" if val > 0 else ("-" if val < 0 else "")
+        return f"{sign_char}{prefix_str}"
+    return prefix_str
 
 def fetch_market_indices():
     """主要5指数の終値・週差・年初来差を算出"""
@@ -18,8 +66,12 @@ def fetch_market_indices():
 
     for item in TARGET_INDICES:
         name = item["name"]
+        desc = item["desc"]
         ticker = item["ticker"]
         fmt = item["format"]
+        unit = item.get("unit", "")
+        prefix = item.get("prefix", "")
+        icon = item.get("icon", "📌")
 
         try:
             t = yf.Ticker(ticker)
@@ -41,15 +93,26 @@ def fetch_market_indices():
             ytd_diff = curr_val - ytd_start_val
             ytd_pct = (ytd_diff / ytd_start_val) * 100
 
+            display_val = format_val_with_unit(curr_val, fmt, prefix, unit)
+            display_week_diff = format_val_with_unit(week_diff, fmt, prefix, unit, sign=True)
+            display_ytd_diff = format_val_with_unit(ytd_diff, fmt, prefix, unit, sign=True)
+
             results.append({
                 "name": name,
+                "desc": desc,
+                "icon": icon,
+                "unit": unit,
+                "prefix": prefix,
                 "current": curr_val,
                 "current_str": fmt.format(curr_val),
+                "display_val": display_val,
                 "week_diff": week_diff,
                 "week_diff_str": fmt.format(week_diff),
+                "display_week_diff": display_week_diff,
                 "week_pct": round(week_pct, 2),
                 "ytd_diff": ytd_diff,
                 "ytd_diff_str": fmt.format(ytd_diff),
+                "display_ytd_diff": display_ytd_diff,
                 "ytd_pct": round(ytd_pct, 2)
             })
         except Exception as e:

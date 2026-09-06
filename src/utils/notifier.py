@@ -29,34 +29,54 @@ def send_notification(title, message):
 def create_market_bubble(market_data):
     """主要5指数の一覧を表示する専用Flexバブルを作成"""
     rows = []
-    for item in market_data:
+    for idx, item in enumerate(market_data):
         w_sign = "+" if item["week_diff"] > 0 else ""
         y_sign = "+" if item["ytd_diff"] > 0 else ""
         w_color = "#10b981" if item["week_diff"] >= 0 else "#ef4444"
         y_color = "#10b981" if item["ytd_diff"] >= 0 else "#ef4444"
 
+        icon = item.get("icon", "📌")
+        name = item.get("name", "")
+        desc = item.get("desc", "")
+        display_val = item.get("display_val", item.get("current_str", ""))
+        display_week = item.get("display_week_diff", f"{w_sign}{item.get('week_diff_str', '')}")
+        display_ytd = item.get("display_ytd_diff", f"{y_sign}{item.get('ytd_diff_str', '')}")
+
+        row_contents = [
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                    {"type": "text", "text": f"{icon} {name}", "weight": "bold", "size": "xs", "color": "#f8fafc", "flex": 5},
+                    {"type": "text", "text": display_val, "weight": "bold", "size": "xs", "color": "#ffffff", "align": "end", "flex": 5}
+                ]
+            },
+            {
+                "type": "text",
+                "text": desc,
+                "size": "xxs",
+                "color": "#94a3b8",
+                "margin": "none"
+            },
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "xs",
+                "contents": [
+                    {"type": "text", "text": f"前週比: {w_sign}{item['week_pct']}% ({display_week})", "size": "xxs", "color": w_color, "flex": 1},
+                    {"type": "text", "text": f"年初来: {y_sign}{item['ytd_pct']}% ({display_ytd})", "size": "xxs", "color": y_color, "align": "end", "flex": 1}
+                ]
+            }
+        ]
+
+        if idx < len(market_data) - 1:
+            row_contents.append({"type": "separator", "margin": "sm", "color": "#334155"})
+
         row = {
             "type": "box",
             "layout": "vertical",
-            "margin": "md",
-            "contents": [
-                {
-                    "type": "box",
-                    "layout": "horizontal",
-                    "contents": [
-                        {"type": "text", "text": item["name"], "weight": "bold", "size": "xs", "color": "#f8fafc", "flex": 3},
-                        {"type": "text", "text": item["current_str"], "weight": "bold", "size": "xs", "color": "#ffffff", "align": "end", "flex": 4}
-                    ]
-                },
-                {
-                    "type": "box",
-                    "layout": "horizontal",
-                    "contents": [
-                        {"type": "text", "text": f"週: {w_sign}{item['week_diff_str']} ({w_sign}{item['week_pct']}%)", "size": "xxs", "color": w_color, "flex": 1},
-                        {"type": "text", "text": f"年初: {y_sign}{item['ytd_diff_str']} ({y_sign}{item['ytd_pct']}%)", "size": "xxs", "color": y_color, "align": "end", "flex": 1}
-                    ]
-                }
-            ]
+            "margin": "sm",
+            "contents": row_contents
         }
         rows.append(row)
 
@@ -66,16 +86,17 @@ def create_market_bubble(market_data):
         "header": {
             "type": "box",
             "layout": "vertical",
-            "backgroundColor": "#1e293b",
+            "backgroundColor": "#0f172a",
             "paddingAll": "12px",
             "contents": [
-                {"type": "text", "text": "📊 マクロ指標サマリー", "color": "#38bdf8", "weight": "bold", "size": "sm"},
-                {"type": "text", "text": "週差 ＆ 年初来パフォーマンス", "color": "#94a3b8", "size": "xxs", "margin": "xs"}
+                {"type": "text", "text": "📊 主要マクロ指標サマリー", "color": "#38bdf8", "weight": "bold", "size": "sm"},
+                {"type": "text", "text": "世界株・米ハイテク・金・為替動向", "color": "#94a3b8", "size": "xxs", "margin": "xs"}
             ]
         },
         "body": {
             "type": "box",
             "layout": "vertical",
+            "backgroundColor": "#1e293b",
             "paddingAll": "12px",
             "contents": rows
         }

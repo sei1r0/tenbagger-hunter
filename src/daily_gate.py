@@ -93,15 +93,20 @@ def main():
     status = res_json.get("status", "YELLOW")
     status_emoji = {"GREEN": "🟢 リスクオン（買付可）", "YELLOW": "🟡 警戒（ロット半減）", "RED": "🔴 リスクオフ（新規買停止）"}
     
+    nasdaq_pct = market_snapshot['Nasdaq']['pct_change']
+    russell_pct = market_snapshot['Russell2000']['pct_change']
+    nasdaq_sign = "+" if nasdaq_pct > 0 else ""
+    russell_sign = "+" if russell_pct > 0 else ""
+
     body = (
         f"判定: {status_emoji.get(status, status)}\n"
         f"理由: {res_json.get('reason')}\n"
         f"方針: {res_json.get('action_guideline')}\n\n"
-        f"主要データ:\n"
-        f"・Nasdaq: {market_snapshot['Nasdaq']['pct_change']}%\n"
-        f"・ラッセル2000: {market_snapshot['Russell2000']['pct_change']}%\n"
-        f"・米10年金利: {market_snapshot['US_10Y_Yield']['close']}%\n"
-        f"・ドル円: {market_snapshot['USD_JPY']['close']}円"
+        f"主要データ（前日比・水準）:\n"
+        f"・🇺🇸 Nasdaq (米ハイテク): {nasdaq_sign}{nasdaq_pct}%\n"
+        f"・🇺🇸 ラッセル2000 (米中小型株): {russell_sign}{russell_pct}%\n"
+        f"・🏛️ 米10年国債利回り: {market_snapshot['US_10Y_Yield']['close']}%\n"
+        f"・💴 ドル円為替: {market_snapshot['USD_JPY']['close']}円"
     )
 
     send_notification(title="朝の地合いゲート判定", message=body, color_level=status)

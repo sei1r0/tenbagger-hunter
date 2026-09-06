@@ -180,11 +180,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="market-panel">
       {% for m in market_indices %}
       <div class="market-card">
-        <div class="market-title">{{ m.name }}</div>
-        <div class="market-val">{{ m.current_str }}</div>
+        <div class="market-title">{{ m.icon }} {{ m.name }} <span style="font-size: 0.72rem; color: var(--text-sub); font-weight: normal;">({{ m.desc }})</span></div>
+        <div class="market-val">{{ m.display_val }}</div>
         <div class="market-change">
-          <div>週差: <span class="{% if m.week_diff >= 0 %}pos{% else %}neg{% endif %}">{% if m.week_diff > 0 %}+{% endif %}{{ m.week_diff_str }} ({% if m.week_diff > 0 %}+{% endif %}{{ m.week_pct }}%)</span></div>
-          <div>年初: <span class="{% if m.ytd_diff >= 0 %}pos{% else %}neg{% endif %}">{% if m.ytd_diff > 0 %}+{% endif %}{{ m.ytd_diff_str }} ({% if m.ytd_diff > 0 %}+{% endif %}{{ m.ytd_pct }}%)</span></div>
+          <div>前週比: <span class="{% if m.week_diff >= 0 %}pos{% else %}neg{% endif %}">{% if m.week_diff > 0 %}+{% endif %}{{ m.week_pct }}% ({{ m.display_week_diff }})</span></div>
+          <div>年初来: <span class="{% if m.ytd_diff >= 0 %}pos{% else %}neg{% endif %}">{% if m.ytd_diff > 0 %}+{% endif %}{{ m.ytd_pct }}% ({{ m.display_ytd_diff }})</span></div>
         </div>
       </div>
       {% endfor %}
