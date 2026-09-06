@@ -24,6 +24,7 @@ MAX_SMA25_DEVIATION = 0.25     # 25日線上方乖離率 25%以内（高値掴�
 MIN_SMA25_DEVIATION = 0.02     # 25日線上方乖離率 2%以上（初動確認）
 BATCH_SIZE = 50                # yfinance API安定化バッチサイズ
 TARGET_POOL_LIMIT = 20         # 厳選上位20銘柄に絞り込み
+BENCHMARK_TICKER = "2516.T"    # 東証グロース250 ETF（RS相対力ベンチマーク）
 
 def get_prev_screened_codes():
     if os.path.exists(OUTPUT_JSON):
@@ -47,6 +48,23 @@ def calculate_up_down_volume_ratio(df_window):
     except Exception:
         return 1.0
 
+def fetch_benchmark_return_60d():
+    """グロース250指数の直近60営業日リターンを算出"""
+    try:
+        t = yf.Ticker(BENCHMARK_TICKER)
+        hist = t.history(period="6mo")
+        if len(hist) >= 60:
+            start_p = float(hist["Close"].iloc[-60])
+            curr_p = float(hist["Close"].iloc[-1])
+            return ((curr_p - start_p) / start_p) * 100
+        elif len(hist) >= 2:
+            start_p = float(hist["Close"].iloc[0])
+            curr_p = float(hist["Close"].iloc[-1])
+            return ((curr_p - start_p) / start_p) * 100
+    except Exception as e:
+        print(f"[WARN] ベンチマーク取得失敗 ({BENCHMARK_TICKER}): {e}")
+    return 0.0
+
 def run_batch_screener():
     start_time = time.time()
     if not os.path.exists(STOCKS_CSV):
@@ -54,6 +72,10 @@ def run_batch_screener():
         sys.exit(1)
 
     prev_codes = get_prev_screened_codes()
+
+    # RS（Relative Strength）の基準となるグロース市場リターンを取得
+    benchmark_return_60d = fetch_benchmark_return_60d()
+    print(f"[INFO] グロース市場ベンチマーク60日リターン: {round(benchmark_return_60d, 2)}%")
 
     df_stocks = pd.read_csv(STOCKS_CSV, dtype={"code": str})
     df_stocks = df_stocks[df_stocks["market"].isin(["グロース", "スタンダード"])].copy()
@@ -134,20 +156,34 @@ def run_batch_screener():
                 # 時価総額・ファンダメンタルズ取得
                 market_cap = 0
                 rev_growth_pct = 0.0
+                op_margin_pct = 0.0
+                psr = None
+
                 try:
                     t = yf.Ticker(ticker_symbol)
                     fast = getattr(t, "fast_info", None)
                     if fast and hasattr(fast, "market_cap") and fast.market_cap:
                         market_cap = fast.market_cap
 
-                    # 売上成長率および時価総額フォールバックの取得
                     info = t.info or {}
                     if not market_cap:
                         market_cap = info.get("marketCap", 0)
 
+                    # 売上高成長率
                     rev_growth = info.get("revenueGrowth", None)
                     if rev_growth is not None:
                         rev_growth_pct = round(rev_growth * 100, 1)
+
+                    # 営業利益率
+                    op_margin = info.get("operatingMargins", None)
+                    if op_margin is not None:
+                        op_margin_pct = round(op_margin * 100, 1)
+
+                    # PSR
+                    psr_val = info.get("priceToSalesTrailing12Months", None)
+                    if psr_val is not None and float(psr_val) > 0:
+                        psr = round(float(psr_val), 1)
+
                 except Exception:
                     pass
 
@@ -158,9 +194,18 @@ def run_batch_screener():
 
                 # フィルター6: 時価総額 300億円以下
                 if 0 < market_cap_oku <= MAX_MARKET_CAP_OKU:
+                    vol3 = float(volumes.iloc[-3:].mean())
                     vol5 = float(volumes.iloc[-5:].mean())
                     vol25 = float(volumes.iloc[-25:].mean())
                     vol_surge = round(vol5 / max(vol25, 1), 2)
+
+                    # VCP（出来高枯渇・売り枯れ）検知: 52週高値10%圏内で直近3日出来高が25日平均の75%未満
+                    is_vcp = (curr_close >= high_52w * 0.90) and (vol3 < max(vol25, 1) * 0.75)
+
+                    # RS（相対力指数）: 個別株60日リターン - ベンチマーク60日リターン
+                    p_60d_ago = float(closes.iloc[-min(60, len(closes))])
+                    stock_return_60d = ((curr_close - p_60d_ago) / p_60d_ago) * 100
+                    rs_rating = round(stock_return_60d - benchmark_return_60d, 1)
 
                     # 直近20営業日の大口買い集め比率（Up/Down Volume比）
                     up_down_ratio = calculate_up_down_volume_ratio(df.iloc[-20:])
@@ -168,16 +213,19 @@ def run_batch_screener():
                     # 新高値接近度（1.0に近いほど新高値直下）
                     high_proximity = round(curr_close / high_52w, 3)
 
-                    # 複合モメンタムスコア算出
-                    # [売買代金回転率] + [出来高急増比] + [売上成長ボーナス] + [大口資金流入比] + [新高値接近度]
-                    turnover_score = min(trading_value_man / max(market_cap_oku, 1), 50.0)
-                    surge_score = min(vol_surge * 10, 50.0)
-                    growth_bonus = min(max(rev_growth_pct, 0), 40.0)
-                    accumulation_score = min(up_down_ratio * 15, 30.0)
-                    proximity_bonus = high_proximity * 20.0
+                    # 進化版 複合モメンタム＆クオリティスコア算出
+                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [新高値近接]
+                    turnover_score = min(trading_value_man / max(market_cap_oku, 1), 25.0)
+                    surge_score = min(vol_surge * 6, 25.0)
+                    growth_bonus = min(max(rev_growth_pct, 0) * 0.6, 20.0)
+                    profit_bonus = min(max(op_margin_pct, 0) * 0.5, 15.0)
+                    accumulation_score = min(up_down_ratio * 10, 15.0)
+                    rs_bonus = min(max(rs_rating, 0) * 0.25, 15.0)
+                    vcp_bonus = 10.0 if is_vcp else 0.0
+                    proximity_bonus = high_proximity * 10.0
 
                     total_momentum_score = round(
-                        turnover_score + surge_score + growth_bonus + accumulation_score + proximity_bonus, 2
+                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + proximity_bonus, 2
                     )
 
                     code_str = str(row_meta["code"])
@@ -194,12 +242,17 @@ def run_batch_screener():
                         "high_52w": high_52w,
                         "vol_surge": vol_surge,
                         "rev_growth_pct": rev_growth_pct,
+                        "op_margin_pct": op_margin_pct,
+                        "psr": psr,
+                        "rs_rating": rs_rating,
+                        "is_vcp": is_vcp,
                         "up_down_ratio": up_down_ratio,
                         "deviation_25_pct": round(deviation_25 * 100, 1),
                         "badge": "STAY" if is_stay else "NEW",
                         "momentum_score": total_momentum_score
                     })
-                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億 / 乖離:+{round(deviation_25*100,1)}% / 大口比:{up_down_ratio}倍 / スコア:{total_momentum_score})")
+                    vcp_str = " 🔥VCP" if is_vcp else ""
+                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億 / RS:+{rs_rating}% / 売上:+{rev_growth_pct}% / 営業益率:{op_margin_pct}%{vcp_str} / スコア:{total_momentum_score})")
 
             except Exception:
                 continue
@@ -227,7 +280,8 @@ def run_batch_screener():
         msg += "【厳選モメンタム上位】\n"
         for c in top_samples:
             badge_icon = "🔁" if c["badge"] == "STAY" else "🆕"
-            msg += f"{badge_icon} {c['code']} {c['name']} (値:{c['close']}円 / {c['market_cap_oku']}億 / 大口比:{c['up_down_ratio']}倍)\n"
+            vcp_tag = " [VCP]" if c.get("is_vcp") else ""
+            msg += f"{badge_icon} {c['code']} {c['name']} (値:{c['close']}円 / RS:+{c['rs_rating']}% / 売上:+{c['rev_growth_pct']}%{vcp_tag})\n"
         if len(candidates) > 5:
             msg += f"...他 {len(candidates) - 5} 銘柄\n"
         msg += f"\n※Gemini AIアナリストが上位{len(candidates)}銘柄の定性分析を開始します。"

@@ -28,7 +28,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tenbagger Hunter Pro - 週末厳選レポート</title>
+  <title>Tenbagger Hunter Pro - 週末厳選AIレポート</title>
   <style>
     :root {
       --bg: #0b0f19;
@@ -38,16 +38,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       --accent-green: #10b981;
       --accent-blue: #38bdf8;
       --accent-red: #ef4444;
+      --accent-gold: #f59e0b;
+      --accent-purple: #a855f7;
       --border: #243049;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background-color: var(--bg);
       color: var(--text-main);
       margin: 0;
       padding: 1.25rem;
     }
-    .container { max-width: 1000px; margin: 0 auto; }
+    .container { max-width: 1040px; margin: 0 auto; }
     header { border-bottom: 1px solid var(--border); padding-bottom: 1.2rem; margin-bottom: 1.5rem; }
     h1 { margin: 0 0 0.4rem 0; font-size: 1.6rem; display: flex; align-items: center; gap: 0.5rem; }
     .updated { color: var(--text-sub); font-size: 0.85rem; }
@@ -55,7 +57,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     /* 主要指数パネル */
     .market-panel {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 0.75rem;
       margin-bottom: 1.75rem;
     }
@@ -110,39 +112,80 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     }
     .stock-title-wrap { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .stock-title { font-size: 1.25rem; font-weight: bold; }
+    
+    /* 確信度バッジ */
+    .tier-badge { font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; }
+    .tier-badge-s { background: linear-gradient(135deg, #7e22ce, #eab308); color: #ffffff; border: 1px solid #facc15; }
+    .tier-badge-a { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .tier-badge-b { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+
     .badge-stay { background: #3b82f6; color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
     .badge-new { background: #f59e0b; color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
-    .tags { display: flex; gap: 0.35rem; margin-top: 0.25rem; }
-    .tag { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+    
+    /* クオンツ・需給タグ */
+    .quant-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem; }
+    .pill { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+    .pill-theme { background: rgba(56, 189, 248, 0.12); color: var(--accent-blue); }
+    .pill-moat { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .pill-vcp { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); font-weight: bold; }
+    .pill-rs { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); }
 
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
       color: var(--accent-green);
       font-weight: bold;
-      font-size: 1.2rem;
-      padding: 0.25rem 0.75rem;
+      font-size: 1.25rem;
+      padding: 0.3rem 0.8rem;
       border-radius: 6px;
       border: 1px solid var(--accent-green);
       text-align: center;
+      min-width: 70px;
     }
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 0.75rem;
-      margin-bottom: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
     }
-    .stat-item { background: rgba(0, 0, 0, 0.25); padding: 0.5rem 0.75rem; border-radius: 6px; }
-    .stat-label { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 0.2rem; }
-    .stat-val { font-size: 1rem; font-weight: bold; }
+    .stat-item { background: rgba(0, 0, 0, 0.25); padding: 0.5rem 0.65rem; border-radius: 6px; }
+    .stat-label { font-size: 0.72rem; color: var(--text-sub); margin-bottom: 0.2rem; }
+    .stat-val { font-size: 0.95rem; font-weight: bold; }
 
-    .catalyst-box {
-      background: rgba(56, 189, 248, 0.05);
-      border-left: 3px solid var(--accent-blue);
-      padding: 0.85rem;
+    .tam-bar {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed var(--border);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: #cbd5e1;
       margin-bottom: 0.75rem;
-      font-size: 0.92rem;
-      line-height: 1.6;
+    }
+
+    .debate-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+    @media (max-width: 700px) {
+      .debate-grid { grid-template-columns: 1fr; }
+    }
+    .bull-box {
+      background: rgba(16, 185, 129, 0.05);
+      border-left: 3px solid var(--accent-green);
+      padding: 0.75rem;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      border-radius: 0 6px 6px 0;
+    }
+    .bear-box {
+      background: rgba(239, 68, 68, 0.05);
+      border-left: 3px solid var(--accent-red);
+      padding: 0.75rem;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      border-radius: 0 6px 6px 0;
     }
 
     .plan-box {
@@ -156,7 +199,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       border-radius: 6px;
       align-items: center;
     }
-    .action-links { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .action-links { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
     .btn-link {
       font-size: 0.75rem;
       color: #94a3b8;
@@ -172,8 +215,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
   <div class="container">
     <header>
-      <h1>🎯 Tenbagger Hunter Pro 厳選レポート</h1>
-      <div class="updated">生成日時: {{ generated_at }} | 厳選銘柄数: {{ total_screened }}件</div>
+      <h1>🎯 Tenbagger Hunter Pro 厳選AIレポート</h1>
+      <div class="updated">生成日時: {{ generated_at }} | 厳選プール: {{ total_screened }}件</div>
     </header>
 
     <!-- 主要指数パネル -->
@@ -195,6 +238,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <label style="font-size: 0.85rem; color: var(--text-sub);">並び替え:</label>
         <select id="sortSelect" onchange="sortCards()">
           <option value="score">AIスコア順</option>
+          <option value="conviction">確信度順 (S > A > B)</option>
+          <option value="rs">RS（市場相対力）順</option>
           <option value="market_cap">時価総額が小さい順</option>
           <option value="surge">出来高急増率順</option>
           <option value="growth">売上成長率順</option>
@@ -209,29 +254,50 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       {% for stock in analyzed_stocks %}
       <div class="card" 
            data-score="{{ stock.analysis.score }}" 
+           data-conviction="{{ stock.analysis.conviction_tier }}"
+           data-rs="{{ stock.rs_rating or 0 }}"
            data-market-cap="{{ stock.market_cap_oku }}"
            data-surge="{{ stock.vol_surge }}"
            data-growth="{{ stock.rev_growth_pct }}"
-           data-text="{{ stock.code }} {{ stock.name }} {{ stock.sector }} {{ ' '.join(stock.analysis.theme_tags) }}">
+           data-text="{{ stock.code }} {{ stock.name }} {{ stock.sector }} {{ stock.analysis.conviction_tier }} {{ ' '.join(stock.analysis.theme_tags) }}">
+        
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
               <span class="stock-title">{{ stock.code }} {{ stock.name }}</span>
               <span style="font-size: 0.85rem; color: var(--text-sub);">({{ stock.market }} / {{ stock.sector }})</span>
+              
+              <!-- 確信度バッジ -->
+              {% if stock.analysis.conviction_tier == 'S' %}
+                <span class="tier-badge tier-badge-s">★Sランク超本命</span>
+              {% elif stock.analysis.conviction_tier == 'A' %}
+                <span class="tier-badge tier-badge-a">Aランク有力</span>
+              {% else %}
+                <span class="tier-badge tier-badge-b">Bランク監視</span>
+              {% endif %}
+
               {% if stock.badge == 'STAY' %}
                 <span class="badge-stay">2週連続</span>
               {% else %}
                 <span class="badge-new">今週初</span>
               {% endif %}
             </div>
-            <div class="tags">
+
+            <!-- クオンツ・需給・Moatタグ -->
+            <div class="quant-tags">
+              {% if stock.is_vcp %}
+                <span class="pill pill-vcp">🔥 VCP売り枯れ点灯</span>
+              {% endif %}
+              <span class="pill pill-rs">RS: +{{ stock.rs_rating }}%</span>
+              <span class="pill pill-moat">🏰 参入障壁: {{ stock.analysis.moat_rating }}</span>
               {% for tag in stock.analysis.theme_tags %}
-                <span class="tag">#{{ tag }}</span>
+                <span class="pill pill-theme">#{{ tag }}</span>
               {% endfor %}
             </div>
           </div>
+
           <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
+            <div style="font-size: 0.72rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
             {{ stock.analysis.score }}点
           </div>
         </div>
@@ -246,16 +312,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="stat-val">{{ stock.market_cap_oku }}億円</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
+            <div class="stat-label">売上高YoY</div>
             <div class="stat-val" style="color: {% if stock.rev_growth_pct > 15 %}var(--accent-green){% else %}inherit{% endif %}">+{{ stock.rev_growth_pct }}%</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">{{ stock.vol_surge }}倍</div>
+            <div class="stat-label">営業利益率</div>
+            <div class="stat-val" style="color: {% if stock.op_margin_pct > 10 %}var(--accent-green){% else %}inherit{% endif %}">+{{ stock.op_margin_pct }}%</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">{{ stock.analysis.entry_price }} / <span style="color: var(--accent-red);">{{ stock.analysis.stop_loss }}</span></div>
+            <div class="stat-label">出来高急増 / 大口比</div>
+            <div class="stat-val" style="color: var(--accent-blue);">{{ stock.vol_surge }}倍 / {{ stock.up_down_ratio }}倍</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">買値目安 / 損切り</div>
+            <div class="stat-val" style="font-size: 0.85rem;">{{ stock.analysis.entry_price }} / <span style="color: var(--accent-red);">{{ stock.analysis.stop_loss }}</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -263,13 +333,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
         </div>
 
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          {{ stock.analysis.growth_story }}
+        <!-- TAM 市場規模表示 -->
+        <div class="tam-bar">
+          <strong>🌐 獲得可能市場 (TAM):</strong> {{ stock.analysis.tam_scale }}
+        </div>
+
+        <!-- Bull/Bear ディベートボックス -->
+        <div class="debate-grid">
+          <div class="bull-box">
+            <strong style="color: var(--accent-green);">🚀【強気シナリオ＆カタリスト】</strong><br>
+            {{ stock.analysis.growth_story }}
+          </div>
+          <div class="bear-box">
+            <strong style="color: var(--accent-red);">🛡️【弱気・落とし穴リスク監査】</strong><br>
+            {{ stock.analysis.risk_factors }}
+          </div>
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> {{ stock.analysis.risk_factors }}</div>
+          <div style="font-size: 0.8rem; color: var(--text-sub);">
+            PSR: {% if stock.psr %}{{ stock.psr }}倍{% else %}-{% endif %} | 25MA乖離: +{{ stock.deviation_25_pct }}%
+          </div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code={{ stock.code }}" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-{{ stock.code }}/" target="_blank">📈 TradingView</a>
@@ -286,8 +370,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const container = document.getElementById("cardsContainer");
       const cards = Array.from(container.getElementsByClassName("card"));
 
+      const tierRank = {"S": 3, "A": 2, "B": 1};
+
       cards.sort((a, b) => {
         if (criteria === "score") return Number(b.dataset.score) - Number(a.dataset.score);
+        if (criteria === "conviction") return (tierRank[b.dataset.conviction] || 0) - (tierRank[a.dataset.conviction] || 0);
+        if (criteria === "rs") return Number(b.dataset.rs) - Number(a.dataset.rs);
         if (criteria === "market_cap") return Number(a.dataset.marketCap) - Number(b.dataset.marketCap);
         if (criteria === "surge") return Number(b.dataset.surge) - Number(a.dataset.surge);
         if (criteria === "growth") return Number(b.dataset.growth) - Number(a.dataset.growth);
@@ -319,37 +407,50 @@ def clean_and_parse_json(text):
         return None
 
 def analyze_stock_with_gemini(client, stock_info):
-    prompt = f"""
-あなたは急成長小型株（テンバガー）投資のスペシャリストです。
-以下の企業スペックとモメンタム指標に基づき、この銘柄の成長性、テーマ合致度、および売買プランを策定してください。
+    vcp_status = "点灯中（売り圧力枯渇・ブレイクアウト直前）" if stock_info.get("is_vcp") else "通常推移"
+    psr_str = f"{stock_info.get('psr')}倍" if stock_info.get("psr") else "算出外"
 
-【対象銘柄】
+    prompt = f"""
+あなたは急成長小型株（テンバガー）投資のトップクオンツ＆ファンダメンタルズスペシャリストです。
+以下の企業スペック、需給指標（RS/VCP）、および財務データに基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+
+【対象銘柄スペック】
 銘柄コード: {stock_info['code']}
 銘柄名: {stock_info['name']}
 市場・業種: {stock_info['market']} / {stock_info['sector']}
 現在株価: {stock_info['close']}円
 時価総額: {stock_info['market_cap_oku']}億円
 直近売上高成長率: +{stock_info.get('rev_growth_pct', 0)}%
+直近営業利益率: +{stock_info.get('op_margin_pct', 0)}%
+PSR（株価売上高倍率）: {psr_str}
+RS（対グロース250超過リターン）: +{stock_info.get('rs_rating', 0)}%
+出来高枯渇VCPシグナル: {vcp_status}
 出来高急増比: {stock_info.get('vol_surge', 1.0)}倍
 
-【出力要件】
-1. score: テンバガー潜在力スコア（0〜100）
-2. theme_tags: 合致する市場テーマ（例: ["AI", "DX", "半導体"] など最大3つ）
-3. growth_story: 業績モメンタムや市場テーマを踏まえた株価起爆カタリスト（130〜150字程度）
-4. risk_factors: 最大の警戒リスク要因（80字程度）
-5. entry_price: 押し目またはブレイク買いの目安価格（現在値 {stock_info['close']}円 基準）
-6. stop_loss: 厳格な損切りライン（買値から約 -7%〜-8%）
-7. risk_reward_ratio: 目標株価と損切り幅から算出するリスクリワード比（数値のみ。例: 3.2）
+【分析・出力要件】
+1. score: テンバガー潜在力総合スコア（0〜100）
+2. conviction_tier: 確信度ランク（"S": 超本命・条件完全合致, "A": 有力成長株, "B": 監視・短期モメンタム型）
+3. theme_tags: 合致する市場テーマ（最大3つ。例: ["AI", "DX", "次世代インフラ"]）
+4. tam_scale: 獲得可能市場規模（TAM）の規模感（30字以内。例: 「国内5,000億円超のDX市場」「世界メガトレンド領域」）
+5. moat_rating: 参入障壁・競争優位性（"HIGH": 独自特許/強固なスイッチングコスト, "MEDIUM": 先行者優位/高シェア, "LOW": 価格競争リスク）
+6. growth_story: 10倍化への起爆シナリオ（強気視点、業績モメンタムやTAM展開を130〜150字程度で明瞭に記述）
+7. risk_factors: 最大の警戒リスク・落とし穴（弱気監査視点、競合参入や一過性特需などを80字程度で厳格に記述）
+8. entry_price: 押し目またはブレイク買いの目安価格（現在値 {stock_info['close']}円 基準）
+9. stop_loss: 厳格な損切りライン（買値から約 -7%〜-8%）
+10. risk_reward_ratio: リスクリワード比（数値のみ。例: 3.5）
 
 以下のJSONフォーマットのみを返してください。
 {{
-  "score": 85,
+  "score": 88,
+  "conviction_tier": "S",
   "theme_tags": ["テーマ1", "テーマ2"],
+  "tam_scale": "国内3,000億円超の市場",
+  "moat_rating": "HIGH",
   "growth_story": "...",
   "risk_factors": "...",
   "entry_price": 0,
   "stop_loss": 0,
-  "risk_reward_ratio": 3.2
+  "risk_reward_ratio": 3.5
 }}
 """
     try:
@@ -362,6 +463,12 @@ def analyze_stock_with_gemini(client, stock_info):
         if res_json and "score" in res_json and "growth_story" in res_json:
             if "theme_tags" not in res_json or not res_json["theme_tags"]:
                 res_json["theme_tags"] = [stock_info["sector"]]
+            if "conviction_tier" not in res_json or res_json["conviction_tier"] not in ("S", "A", "B"):
+                res_json["conviction_tier"] = "A" if res_json["score"] >= 80 else "B"
+            if "moat_rating" not in res_json:
+                res_json["moat_rating"] = "MEDIUM"
+            if "tam_scale" not in res_json:
+                res_json["tam_scale"] = f"{stock_info['sector']}関連市場"
             if "risk_reward_ratio" not in res_json:
                 res_json["risk_reward_ratio"] = 3.0
             return res_json, "SUCCESS"
@@ -408,7 +515,7 @@ def main():
 
     analyzed_stocks = []
     consecutive_transient_errors = 0
-    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析を開始...")
+    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析（Red-Teamディベート）を開始...")
 
     for item in candidates:
         print(f"  -> 分析中: {item['code']} {item['name']}")
@@ -428,7 +535,10 @@ def main():
             stop = round(float(item['close']) * 0.92, 1)
             analysis = {
                 "score": 75,
+                "conviction_tier": "B",
                 "theme_tags": [item["sector"]],
+                "tam_scale": f"{item['sector']}関連領域",
+                "moat_rating": "MEDIUM",
                 "growth_story": f"{item['name']}はモメンタムと出来高水準を維持。独自事業の進捗が注目点。",
                 "risk_factors": "一時的な通信エラーのためテクニカル算定値を暫定表示。",
                 "entry_price": item['close'],

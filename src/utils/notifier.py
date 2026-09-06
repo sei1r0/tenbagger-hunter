@@ -120,10 +120,16 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
     # 2枚目以降: 厳選個別株カード（最大4銘柄）
     for idx, s in enumerate(top_stocks[:4], 1):
         a = s.get("analysis", {})
-        tags = " / ".join(a.get("theme_tags", [s.get("sector", "注目株")]))
+        tier = a.get("conviction_tier", "A")
+        tier_label = {"S": "👑 Sランク超本命", "A": "⭐ Aランク有力", "B": "📌 Bランク監視"}.get(tier, "⭐ Aランク")
+        moat = a.get("moat_rating", "MEDIUM")
+        rs_str = f"RS:+{s.get('rs_rating', 0)}%"
+        vcp_str = " 🔥VCP" if s.get("is_vcp") else ""
+        sub_info = f"Moat:{moat} | {rs_str}{vcp_str}"
+
         growth_story = a.get("growth_story", "チャート動向をチェックしてください。")
-        if len(growth_story) > 120:
-            growth_story = growth_story[:117] + "..."
+        if len(growth_story) > 115:
+            growth_story = growth_story[:112] + "..."
 
         bubble = {
             "type": "bubble",
@@ -134,9 +140,16 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
                 "backgroundColor": "#0f172a",
                 "paddingAll": "12px",
                 "contents": [
-                    {"type": "text", "text": f"第{idx}位  ★スコア {a.get('score', '-')}点", "color": "#10b981", "weight": "bold", "size": "sm"},
-                    {"type": "text", "text": f"{s.get('code', '')} {s.get('name', '')}", "color": "#ffffff", "weight": "bold", "size": "md", "wrap": True},
-                    {"type": "text", "text": tags, "color": "#38bdf8", "size": "xxs", "margin": "xs"}
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {"type": "text", "text": f"第{idx}位 {tier_label}", "color": "#10b981", "weight": "bold", "size": "sm", "flex": 7},
+                            {"type": "text", "text": f"{a.get('score', '-')}点", "color": "#f59e0b", "weight": "bold", "size": "sm", "align": "end", "flex": 3}
+                        ]
+                    },
+                    {"type": "text", "text": f"{s.get('code', '')} {s.get('name', '')}", "color": "#ffffff", "weight": "bold", "size": "md", "wrap": True, "margin": "xs"},
+                    {"type": "text", "text": sub_info, "color": "#38bdf8", "size": "xxs", "margin": "xs"}
                 ]
             },
             "body": {
@@ -148,8 +161,8 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
                         "type": "box",
                         "layout": "horizontal",
                         "contents": [
-                            {"type": "text", "text": "現在値", "size": "xs", "color": "#888888"},
-                            {"type": "text", "text": f"{s.get('close', '-')}円", "size": "xs", "weight": "bold", "align": "end"}
+                            {"type": "text", "text": "現在値 / 時価", "size": "xs", "color": "#888888"},
+                            {"type": "text", "text": f"{s.get('close', '-')}円 ({s.get('market_cap_oku', '-')}億)", "size": "xs", "weight": "bold", "align": "end"}
                         ]
                     },
                     {
@@ -173,7 +186,7 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
                     {"type": "separator", "margin": "md"},
                     {
                         "type": "text",
-                        "text": growth_story,
+                        "text": f"🚀 {growth_story}",
                         "size": "xxs",
                         "color": "#333333",
                         "wrap": True,
