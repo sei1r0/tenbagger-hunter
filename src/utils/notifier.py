@@ -131,6 +131,12 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
             edge_tags.append("✨GC初動")
         if s.get("is_sound_base"):
             edge_tags.append("📐ベース")
+        if s.get("is_clean_margin"):
+            edge_tags.append("💎需給クリーン")
+        if s.get("is_earnings_imminent"):
+            edge_tags.append("⚠️決算直前")
+        elif s.get("is_post_earnings"):
+            edge_tags.append("⚡決算通過")
         if s.get("is_ultra_light"):
             edge_tags.append(f"🎈浮動{s.get('float_mcap_oku')}億")
         if s.get("is_fresh_ipo"):

@@ -111,6 +111,15 @@ def check_watchlist_action_triggers():
         is_vcp = s.get("is_vcp", False)
 
         # --- 1. 下降トレンド転落・手仕舞い・リスク警戒 ---
+        # 決算直前トラップ警戒（発表まで10日以内）
+        is_earnings_imminent = s.get("is_earnings_imminent", False)
+        days_to_earnings = s.get("days_to_earnings")
+        if is_earnings_imminent:
+            days_str = f"あと{days_to_earnings}日" if days_to_earnings is not None else "直前"
+            risk_alerts.append(
+                f"⚠️ 決算直前: {code} {name} (発表{days_str}・ガチャ回避・通過後エントリー推奨)"
+            )
+
         # A. 損切りライン到達（即時撤退）
         if stop_loss > 0 and curr_price <= stop_loss:
             risk_alerts.append(

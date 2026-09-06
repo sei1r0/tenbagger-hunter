@@ -275,6 +275,18 @@ def run_batch_screener():
                     inst_held_pct = round(float(inst_held) * 100, 1) if inst_held is not None else 0.0
                     is_early_inst = bool(3.0 <= inst_held_pct <= 25.0)
 
+                    # ⑤ 決算発表日カレンダーの推定（決算直前トラップ検知 ＆ 決算通過初動）
+                    earnings_ts = info.get("earningsTimestamp") or info.get("earningsTimestampStart")
+                    days_to_earnings = None
+                    is_earnings_imminent = False
+                    is_post_earnings = False
+                    if earnings_ts:
+                        days_to_earnings = round((float(earnings_ts) - time.time()) / 86400, 1)
+                        if 0 <= days_to_earnings <= 10:
+                            is_earnings_imminent = True # 決算発表まで10日以内（ガチャ警戒）
+                        elif -14 <= days_to_earnings < 0:
+                            is_post_earnings = True     # 決算発表後14日以内（好決算通過初動）
+
                 except Exception:
                     pass
 
@@ -318,11 +330,17 @@ def run_batch_screener():
                     # 直近20営業日の大口買い集め比率（Up/Down Volume比）
                     up_down_ratio = calculate_up_down_volume_ratio(df.iloc[-21:] if len(df) >= 21 else df)
 
+                    # ⑥ 需給クリーン度（しこり玉極小）判定
+                    # 浮動株軽量または創業者高比率かつ、大口買い集め(Up/Down>=1.2)またはVCP売り枯れ
+                    is_clean_margin = bool(
+                        (is_ultra_light or insider_held_pct >= 25.0) and (up_down_ratio >= 1.2 or is_vcp)
+                    )
+
                     # 新高値接近度（1.0に近いほど新高値直下）
                     high_proximity = round(curr_close / high_52w, 3)
 
                     # テンバガー・プロフェッショナル複合スコア算出
-                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長] + [上場黄金期] + [成長加速] + [機関初期] + [Stage2] + [GC初動] + [健全ベース] + [安値リバウンド] + [MACD好転]
+                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長] + [上場黄金期] + [成長加速] + [機関初期] + [Stage2] + [GC初動] + [健全ベース] + [安値リバウンド] + [MACD好転] + [需給クリーン] + [決算調整]
                     turnover_score = min(trading_value_man / max(market_cap_oku, 1), 25.0)
                     surge_score = min(vol_surge * 5, 20.0)
                     growth_bonus = min(max(rev_growth_pct, 0) * 0.6, 20.0)
@@ -346,8 +364,12 @@ def run_batch_screener():
                     rebound_bonus = 4.0 if is_52w_rebound else 0.0
                     macd_bonus = 4.0 if is_macd_bullish else 0.0
 
+                    # 需給クリーン ＆ 決算ステータス調整
+                    clean_margin_bonus = 5.0 if is_clean_margin else 0.0
+                    earnings_adj = -2.0 if is_earnings_imminent else (4.0 if is_post_earnings else 0.0)
+
                     total_momentum_score = round(
-                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus + ipo_bonus + accel_bonus + inst_bonus + stage2_bonus + gc_bonus + base_bonus + rebound_bonus + macd_bonus, 2
+                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus + ipo_bonus + accel_bonus + inst_bonus + stage2_bonus + gc_bonus + base_bonus + rebound_bonus + macd_bonus + clean_margin_bonus + earnings_adj, 2
                     )
 
                     code_str = str(row_meta["code"])
@@ -388,6 +410,10 @@ def run_batch_screener():
                         "is_golden_cross": is_golden_cross,
                         "is_sound_base": is_sound_base,
                         "is_macd_bullish": is_macd_bullish,
+                        "is_earnings_imminent": is_earnings_imminent,
+                        "is_post_earnings": is_post_earnings,
+                        "days_to_earnings": days_to_earnings,
+                        "is_clean_margin": is_clean_margin,
                         "up_down_ratio": up_down_ratio,
                         "deviation_25_pct": round(deviation_25 * 100, 1),
                         "badge": "STAY" if is_stay else "NEW",
@@ -399,7 +425,9 @@ def run_batch_screener():
                     ipo_str = " 🌱IPO黄金期" if is_fresh_ipo else ""
                     gc_str = " ✨GC初動" if is_golden_cross else ""
                     stage2_str = " 🌊Stage2" if is_stage2 else ""
-                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}%{stage2_str}{gc_str}{vcp_str}{ipo_str} / スコア:{total_momentum_score})")
+                    clean_str = " 💎需給クリーン" if is_clean_margin else ""
+                    earn_str = f" ⚠️決算{days_to_earnings}日後" if is_earnings_imminent else (" ⚡決算通過" if is_post_earnings else "")
+                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}%{stage2_str}{gc_str}{clean_str}{earn_str}{vcp_str}{ipo_str} / スコア:{total_momentum_score})")
 
             except Exception:
                 continue

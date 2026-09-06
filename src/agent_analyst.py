@@ -141,6 +141,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .pill-gc { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.5); font-weight: bold; }
     .pill-base { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
     .pill-macd { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .pill-earnings-warn { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); font-weight: bold; }
+    .pill-earnings-post { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-weight: bold; }
+    .pill-clean-margin { background: rgba(14, 165, 233, 0.18); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4); }
 
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
@@ -297,6 +300,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             <!-- クオンツ・需給・Moatタグ -->
             <div class="quant-tags">
+              {% if stock.is_earnings_imminent %}
+                <span class="pill pill-earnings-warn">⚠️ 決算直前 (あと{{ stock.days_to_earnings }}日・ガチャ警戒)</span>
+              {% elif stock.is_post_earnings %}
+                <span class="pill pill-earnings-post">⚡ 決算通過直後 (好決算初動)</span>
+              {% endif %}
+              {% if stock.is_clean_margin %}
+                <span class="pill pill-clean-margin">💎 需給クリーン (しこり玉小)</span>
+              {% endif %}
               {% if stock.is_ultra_light %}
                 <span class="pill pill-light">🎈 浮動株 {{ stock.float_mcap_oku }}億 (超軽量)</span>
               {% endif %}
@@ -479,9 +490,20 @@ def analyze_stock_with_gemini(client, stock_info):
         trend_str.append("高値圏の浅い健全ベース形成")
     trend_summary_str = " / ".join(trend_str) if trend_str else "上昇パーフェクトオーダー推移"
 
+    # 決算ステータス ＆ 信用需給構造
+    if stock_info.get("is_earnings_imminent"):
+        days = stock_info.get("days_to_earnings", 0)
+        earnings_str = f"次回決算発表まであと約{days}日（決算直前のギャンブル買い回避・発表後の内容確認推奨）"
+    elif stock_info.get("is_post_earnings"):
+        earnings_str = "決算発表通過直後（好業績カタリスト初動局面）"
+    else:
+        earnings_str = "通常期"
+
+    margin_str = "個人投資家の信用しこり玉が極めて少なく、大口の買い集めが進行（需給良好）" if stock_info.get("is_clean_margin") else "通常需給"
+
     prompt = f"""
 あなたはお急成長小型株（テンバガー）投資のトップクオンツ＆ファンダメンタルズスペシャリストです。
-以下の企業スペック、需給指標（RS/VCP/浮動株）、トレンド構造（Stage 2/GC）、創業者比率、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+以下の企業スペック、需給指標（RS/VCP/浮動株）、トレンド構造（Stage 2/GC）、創業者比率、決算スケジュール、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
 
 【対象銘柄スペック】
 銘柄コード: {stock_info['code']}
@@ -489,6 +511,8 @@ def analyze_stock_with_gemini(client, stock_info):
 市場・業種: {stock_info['market']} / {stock_info['sector']}
 公式事業概要: {summary_str}
 トレンド構造: {trend_summary_str} (52週安値から+{stock_info.get('low_rebound_pct', 0)}%リバウンド)
+決算ステータス: {earnings_str}
+信用・需給構造: {margin_str}
 上場ステージ: {ipo_str}
 現在株価: {stock_info['close']}円
 25日移動平均線: {stock_info.get('sma25')}円 (乖離: +{stock_info.get('deviation_25_pct')}%)
