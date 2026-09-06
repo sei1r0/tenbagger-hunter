@@ -262,7 +262,7 @@ def run_batch_screener():
 
                     # 企業公式概要（欠損時の自動フォールバック補完）
                     raw_summary = info.get("longBusinessSummary") or info.get("businessSummary") or ""
-                    business_summary = raw_summary.strip()[:200]
+                    business_summary = raw_summary.strip()[:600]
                     if not business_summary:
                         business_summary = f"{row_meta['name']}は、東証{row_meta['market']}市場に上場する{row_meta['sector']}関連企業です。"
 
