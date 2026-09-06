@@ -31,6 +31,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tenbagger Hunter Pro - 週末厳選AIレポート</title>
+  <!-- TradingView Chart Widget Script -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
   <style>
     :root {
       --bg: #0b0f19;
@@ -74,6 +76,64 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .market-change { font-size: 0.75rem; }
     .pos { color: var(--accent-green); }
     .neg { color: var(--accent-red); }
+
+    /* 資金管理・ポジションサイジング計算機 */
+    .calc-panel {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(56, 189, 248, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      padding: 0.85rem 1.1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .calc-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .calc-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+    }
+    .calc-input {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      width: 110px;
+      font-weight: bold;
+    }
+    .calc-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .pos-size-box {
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px dashed rgba(16, 185, 129, 0.35);
+      border-radius: 6px;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      margin-top: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
 
     /* コントロールバー */
     .controls {
@@ -215,7 +275,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       border-radius: 6px;
       align-items: center;
     }
-    .action-links { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+    .action-links { display: flex; gap: 0.5rem; margin-top: 0.3rem; align-items: center; flex-wrap: wrap; }
     .btn-link {
       font-size: 0.75rem;
       color: #94a3b8;
@@ -224,8 +284,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       padding: 0.3rem 0.6rem;
       border-radius: 4px;
       border: 1px solid var(--border);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
     }
-    .btn-link:hover { color: #fff; background: rgba(255,255,255,0.12); }
+    .btn-link:hover { color: #fff; background: rgba(255,255,255,0.12); border-color: var(--accent-blue); }
+    
+    /* TradingView チャートコンテナ */
+    .tv-chart-wrap {
+      display: none;
+      height: 380px;
+      margin-top: 0.75rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #131722;
+    }
 
     /* トラックレコード パネル */
     .track-panel {
@@ -291,11 +366,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
         <div>
           <h1>🎯 Tenbagger Hunter Pro 厳選AIレポート</h1>
-          <div class="updated">生成日時: {{ generated_at }} | 厳選プール: {{ total_screened }}件</div>
+          <div class="updated">生成日時: <span id="headerGeneratedAt">{{ generated_at }}</span> | 厳選プール: <span id="headerPoolSize">{{ total_screened }}件</span></div>
         </div>
         {% if archive_dates and archive_dates|length > 1 %}
         <div style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
-          <label style="font-size: 0.75rem; color: var(--text-sub); display: block; margin-bottom: 2px;">📅 レポート履歴</label>
+          <label style="font-size: 0.75rem; color: var(--text-sub); display: block; margin-bottom: 2px;">📅 レポート履歴 (即時切替)</label>
           <select id="archiveSelect" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.8rem;">
             {% for d in archive_dates %}
               <option value="{{ d }}" {% if loop.first %}selected{% endif %}>{{ d }}{% if loop.first %} (最新週){% endif %}</option>
@@ -380,13 +455,39 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <!-- 📊 セクター分散・構成比バー -->
     {% if sector_dist %}
-    <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+    <div id="sectorDistBar" style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
       <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: bold;">📊 セクター分散:</span>
       {% for sec, count in sector_dist.items() %}
         <span class="pill pill-theme" style="font-size: 0.72rem;">{{ sec }} ({{ count }}件)</span>
       {% endfor %}
     </div>
     {% endif %}
+
+    <!-- 💰 資金管理・適正ポジションサイジング計算機 (Risk Management & Sizing Calculator) -->
+    <div class="calc-panel">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.2rem;">💰</span>
+        <div>
+          <strong style="font-size: 0.95rem; color: #38bdf8;">資金管理・適正ポジションサイジング計算機</strong>
+          <div style="font-size: 0.75rem; color: var(--text-sub);">1トレードの許容リスク（2%ルール）に基づき、各銘柄の推奨ロット数と概算投資額を即時計算します</div>
+        </div>
+      </div>
+      <div class="calc-inputs">
+        <div class="calc-group">
+          <label style="color: var(--text-sub); font-size: 0.8rem;">総投資資金:</label>
+          <input type="number" id="calcCapital" class="calc-input" value="1000000" step="100000" min="100000" oninput="updatePositionSizes()">
+          <span style="font-size: 0.8rem; color: var(--text-sub);">円</span>
+        </div>
+        <div class="calc-group">
+          <label style="color: var(--text-sub); font-size: 0.8rem;">許容リスク率:</label>
+          <input type="number" id="calcRiskPct" class="calc-input" value="2.0" step="0.5" min="0.5" max="10.0" style="width: 65px;" oninput="updatePositionSizes()">
+          <span style="font-size: 0.8rem; color: var(--text-sub);">%</span>
+        </div>
+        <div class="calc-badge">
+          1銘柄の許容損失: <strong id="calcRiskBudgetDisplay" style="color: #fff;">20,000 円</strong>
+        </div>
+      </div>
+    </div>
 
     <div class="controls">
       <div>
@@ -533,8 +634,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
         </div>
 
+        <!-- 推奨ポジションサイジング表示 -->
+        <div class="pos-size-box">
+          <div>
+            <span>📐 <strong>推奨ポジション:</strong> </span>
+            <span class="calc-shares" data-entry="{{ stock.analysis.entry_price or stock.close }}" data-stop="{{ stock.analysis.stop_loss or (stock.close * 0.92)|round(1) }}">-</span> 株
+            <span style="color: var(--text-sub); margin-left: 4px;">(投資概算: <span class="calc-amount">-</span>万円)</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-sub);">※損切りライン到達時の損失を許容リスク内に抑制</div>
+        </div>
+
         <!-- TAM 市場規模表示 -->
-        <div class="tam-bar">
+        <div class="tam-bar" style="margin-top: 0.75rem;">
           <strong>🌐 獲得可能市場 (TAM):</strong> {{ stock.analysis.tam_scale }}
         </div>
 
@@ -555,16 +666,93 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             25MA: {{ stock.sma25 }}円 (乖離: +{{ stock.deviation_25_pct }}%) | 52週高値: {{ stock.high_52w }}円 | 大口比: {{ stock.up_down_ratio }}倍
           </div>
           <div class="action-links">
+            <button type="button" class="btn-link tv-toggle-btn" id="tv-btn-{{ stock.code }}" onclick="toggleTvChart('{{ stock.code }}')">📈 チャート展開</button>
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code={{ stock.code }}" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-{{ stock.code }}/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-{{ stock.code }}/" target="_blank">↗ TradingView</a>
           </div>
+        </div>
+
+        <!-- TradingView インラインチャート領域 -->
+        <div id="tv-container-wrap-{{ stock.code }}" class="tv-chart-wrap">
+          <div id="tv-container-{{ stock.code }}" style="height: 100%; width: 100%;"></div>
         </div>
       </div>
       {% endfor %}
     </div>
   </div>
 
+  <!-- 過去履歴 JSON 埋め込み (SPA即時切り替え用) -->
+  <script id="historyData" type="application/json">
+{{ all_history_json | safe }}
+  </script>
+
   <script>
+    const activeTvWidgets = {};
+
+    function toggleTvChart(code) {
+      const wrap = document.getElementById(`tv-container-wrap-${code}`);
+      const btn = document.getElementById(`tv-btn-${code}`);
+      if (!wrap) return;
+
+      if (wrap.style.display === "none" || !wrap.style.display) {
+        wrap.style.display = "block";
+        if (btn) btn.textContent = "📉 チャート閉じる";
+        if (!activeTvWidgets[code] && window.TradingView) {
+          activeTvWidgets[code] = new TradingView.widget({
+            "autosize": true,
+            "symbol": `TSE:${code}`,
+            "interval": "D",
+            "timezone": "Asia/Tokyo",
+            "theme": "dark",
+            "style": "1",
+            "locale": "ja",
+            "toolbar_bg": "#151d30",
+            "enable_publishing": false,
+            "allow_symbol_change": false,
+            "container_id": `tv-container-${code}`
+          });
+        }
+      } else {
+        wrap.style.display = "none";
+        if (btn) btn.textContent = "📈 チャート展開";
+      }
+    }
+
+    function updatePositionSizes() {
+      const capitalInput = document.getElementById("calcCapital");
+      const riskPctInput = document.getElementById("calcRiskPct");
+      const capital = parseFloat(capitalInput ? capitalInput.value : 1000000) || 1000000;
+      const riskPct = (parseFloat(riskPctInput ? riskPctInput.value : 2.0) || 2.0) / 100.0;
+      const riskBudget = capital * riskPct;
+      const riskBudgetDisplay = document.getElementById("calcRiskBudgetDisplay");
+      if (riskBudgetDisplay) {
+        riskBudgetDisplay.textContent = Math.round(riskBudget).toLocaleString() + " 円";
+      }
+
+      document.querySelectorAll(".card").forEach(card => {
+        const sharesEl = card.querySelector(".calc-shares");
+        const amountEl = card.querySelector(".calc-amount");
+        if (!sharesEl) return;
+        
+        const entry = parseFloat(sharesEl.dataset.entry) || 0;
+        const stop = parseFloat(sharesEl.dataset.stop) || (entry * 0.92);
+        
+        if (entry <= 0) {
+          sharesEl.textContent = "-";
+          if (amountEl) amountEl.textContent = "-";
+          return;
+        }
+
+        const riskPerShare = Math.max(entry - stop, entry * 0.05);
+        let shares = Math.floor(riskBudget / riskPerShare / 100) * 100;
+        if (shares < 100) shares = 100;
+        
+        const totalCostMan = (shares * entry) / 10000;
+        sharesEl.textContent = shares.toLocaleString();
+        if (amountEl) amountEl.textContent = totalCostMan.toFixed(1);
+      });
+    }
+
     function sortCards() {
       const criteria = document.getElementById("sortSelect").value;
       const container = document.getElementById("cardsContainer");
@@ -593,6 +781,203 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         card.style.display = text.includes(q) ? "block" : "none";
       }
     }
+
+    function renderStockCard(stock) {
+      const a = stock.analysis || {};
+      const score = a.score || stock.score || 80;
+      const conviction = a.conviction_tier || stock.conviction_tier || "A";
+      const entry = a.entry_price || stock.entry_price || stock.close || stock.recommend_price || 0;
+      const stop = a.stop_loss || stock.stop_loss || Math.round(entry * 0.92);
+      const rr = a.risk_reward_ratio || stock.risk_reward_ratio || 3.0;
+      const tags = a.theme_tags || stock.theme_tags || [stock.sector || "新興"];
+      const moat = a.moat_rating || stock.moat_rating || "MEDIUM";
+      const tam = a.tam_scale || stock.tam_scale || (stock.sector + "市場");
+      const story = a.growth_story || stock.growth_story || "";
+      const risk = a.risk_factors || stock.risk_factors || "";
+      const rs = stock.rs_rating || 0;
+      const mcap = stock.market_cap_oku || 0;
+      const surge = stock.vol_surge || 1.0;
+      const growth = stock.rev_growth_pct || 0;
+      const opMargin = stock.op_margin_pct || 0;
+      const insider = stock.insider_held_pct ? `${stock.insider_held_pct}%` : "-";
+      const pe = stock.trailing_pe ? `${stock.trailing_pe}倍` : "-";
+      const psr = stock.psr ? `${stock.psr}倍` : "-";
+
+      let tierBadge = `<span class="tier-badge tier-badge-b">Bランク監視</span>`;
+      if (conviction === "S") tierBadge = `<span class="tier-badge tier-badge-s">★Sランク超本命</span>`;
+      else if (conviction === "A") tierBadge = `<span class="tier-badge tier-badge-a">Aランク有力</span>`;
+
+      let stayBadge = stock.badge === "STAY" 
+        ? `<span class="badge-stay">2週連続</span>` 
+        : `<span class="badge-new">今週初</span>`;
+
+      let quantTagsHtml = "";
+      if (stock.is_earnings_imminent) quantTagsHtml += `<span class="pill pill-earnings-warn">⚠️ 決算直前 (あと${stock.days_to_earnings || 0}日)</span>`;
+      else if (stock.is_post_earnings) quantTagsHtml += `<span class="pill pill-earnings-post">⚡ 決算通過直後</span>`;
+      if (stock.is_clean_margin) quantTagsHtml += `<span class="pill pill-clean-margin">💎 需給クリーン</span>`;
+      if (stock.is_ultra_light) quantTagsHtml += `<span class="pill pill-light">🎈 浮動株 ${stock.float_mcap_oku || mcap}億 (超軽量)</span>`;
+      if (stock.is_vcp) quantTagsHtml += `<span class="pill pill-vcp">🔥 VCP売り枯れ点灯</span>`;
+      quantTagsHtml += `<span class="pill pill-rs">RS: +${rs}%</span>`;
+      quantTagsHtml += `<span class="pill pill-moat">🏰 参入障壁: ${moat}</span>`;
+      if (stock.insider_held_pct && stock.insider_held_pct >= 20) quantTagsHtml += `<span class="pill pill-founder">👑 創業者等: ${stock.insider_held_pct}%</span>`;
+      if (stock.is_stage2) quantTagsHtml += `<span class="pill pill-stage2">🌊 Stage 2</span>`;
+      if (stock.is_golden_cross) quantTagsHtml += `<span class="pill pill-gc">✨ GC初動</span>`;
+      if (stock.is_sound_base) quantTagsHtml += `<span class="pill pill-base">📐 健全ベース</span>`;
+      if (stock.is_macd_bullish) quantTagsHtml += `<span class="pill pill-macd">⚡ MACD好転</span>`;
+      if (stock.is_fresh_ipo) quantTagsHtml += `<span class="pill pill-ipo">🌱 上場黄金期</span>`;
+      if (stock.is_accelerating) quantTagsHtml += `<span class="pill pill-accel">🚀 成長加速</span>`;
+      if (stock.is_early_inst) quantTagsHtml += `<span class="pill pill-inst">💎 機関保有初期 (${stock.inst_held_pct || 0}%)</span>`;
+      if (stock.is_net_cash) quantTagsHtml += `<span class="pill pill-cash">💰 実質無借金</span>`;
+      if (stock.is_turnaround) quantTagsHtml += `<span class="pill pill-turnaround">⚡ 黒字成長</span>`;
+      tags.forEach(t => { quantTagsHtml += `<span class="pill pill-theme">#${t}</span>`; });
+
+      return `
+        <div class="card" 
+             data-score="${score}" 
+             data-conviction="${conviction}"
+             data-rs="${rs}"
+             data-market-cap="${mcap}"
+             data-surge="${surge}"
+             data-growth="${growth}"
+             data-text="${stock.code} ${stock.name} ${stock.sector || ''} ${conviction} ${tags.join(' ')}">
+          
+          <div class="card-header">
+            <div>
+              <div class="stock-title-wrap">
+                <span class="stock-title">${stock.code} ${stock.name}</span>
+                <span style="font-size: 0.85rem; color: var(--text-sub);">(${stock.market || ''} / ${stock.sector || ''})</span>
+                ${tierBadge}
+                ${stayBadge}
+              </div>
+              <div class="quant-tags">
+                ${quantTagsHtml}
+              </div>
+            </div>
+            <div class="score-badge">
+              <div style="font-size: 0.72rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
+              ${score}点
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-label">現在株価</div>
+              <div class="stat-val">${stock.close || stock.recommend_price || 0}円</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">時価総額</div>
+              <div class="stat-val">${mcap}億円</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">売上高YoY</div>
+              <div class="stat-val" style="color: ${growth > 15 ? 'var(--accent-green)' : 'inherit'};">+${growth}%</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">営業利益率</div>
+              <div class="stat-val" style="color: ${opMargin > 10 ? 'var(--accent-green)' : 'inherit'};">+${opMargin}%</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">創業者保有比率</div>
+              <div class="stat-val" style="color: ${stock.insider_held_pct >= 30 ? 'var(--accent-gold)' : 'inherit'};">${insider}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">PER / PSR</div>
+              <div class="stat-val" style="font-size: 0.85rem;">${pe} / ${psr}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">買値目安 / 損切り</div>
+              <div class="stat-val" style="font-size: 0.85rem;">${entry} / <span style="color: var(--accent-red);">${stop}</span></div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">リスクリワード比</div>
+              <div class="stat-val" style="color: var(--accent-green);">1 : ${rr}</div>
+            </div>
+          </div>
+
+          <div class="pos-size-box">
+            <div>
+              <span>📐 <strong>推奨ポジション:</strong> </span>
+              <span class="calc-shares" data-entry="${entry}" data-stop="${stop}">-</span> 株
+              <span style="color: var(--text-sub); margin-left: 4px;">(投資概算: <span class="calc-amount">-</span>万円)</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-sub);">※損切りライン到達時の損失を許容リスク内に抑制</div>
+          </div>
+
+          ${tam ? `<div class="tam-bar" style="margin-top: 0.75rem;"><strong>🌐 獲得可能市場 (TAM):</strong> ${tam}</div>` : ''}
+
+          ${story || risk ? `
+          <div class="debate-grid">
+            <div class="bull-box">
+              <strong style="color: var(--accent-green);">🚀【強気シナリオ＆カタリスト】</strong><br>
+              ${story || 'モメンタムと需給構造を維持。'}
+            </div>
+            <div class="bear-box">
+              <strong style="color: var(--accent-red);">🛡️【弱気・落とし穴リスク監査】</strong><br>
+              ${risk || 'テクニカル急変・市場全体の下落に注意。'}
+            </div>
+          </div>` : ''}
+
+          <div class="plan-box">
+            <div style="font-size: 0.8rem; color: var(--text-sub);">
+              25MA: ${stock.sma25 || '-'}円 (乖離: +${stock.deviation_25_pct || 0}%) | 52週高値: ${stock.high_52w || '-'}円 | 大口比: ${stock.up_down_ratio || 1.0}倍
+            </div>
+            <div class="action-links">
+              <button type="button" class="btn-link tv-toggle-btn" id="tv-btn-${stock.code}" onclick="toggleTvChart('${stock.code}')">📈 チャート展開</button>
+              <a class="btn-link" href="https://kabutan.jp/stock/chart?code=${stock.code}" target="_blank">📊 株探チャート</a>
+              <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-${stock.code}/" target="_blank">↗ TradingView</a>
+            </div>
+          </div>
+
+          <div id="tv-container-wrap-${stock.code}" class="tv-chart-wrap">
+            <div id="tv-container-${stock.code}" style="height: 100%; width: 100%;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function initArchiveSwitcher() {
+      const select = document.getElementById("archiveSelect");
+      if (!select) return;
+
+      const initialContainerHtml = document.getElementById("cardsContainer").innerHTML;
+      const historyDataEl = document.getElementById("historyData");
+      let historyMap = {};
+      if (historyDataEl && historyDataEl.textContent.trim()) {
+        try {
+          historyMap = JSON.parse(historyDataEl.textContent);
+        } catch (e) {
+          console.error("履歴データ解析エラー:", e);
+        }
+      }
+
+      select.addEventListener("change", (e) => {
+        const chosenDate = e.target.value;
+        const container = document.getElementById("cardsContainer");
+        const headerGenAt = document.getElementById("headerGeneratedAt");
+        const headerPool = document.getElementById("headerPoolSize");
+
+        if (select.selectedIndex === 0) {
+          container.innerHTML = initialContainerHtml;
+          updatePositionSizes();
+          sortCards();
+          return;
+        }
+
+        const list = historyMap[chosenDate];
+        if (list && list.length > 0) {
+          container.innerHTML = list.map(renderStockCard).join("");
+          if (headerGenAt) headerGenAt.textContent = `${chosenDate} (アーカイブ)`;
+          if (headerPool) headerPool.textContent = `${list.length}件`;
+          updatePositionSizes();
+          sortCards();
+        }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      updatePositionSizes();
+      initArchiveSwitcher();
+    });
   </script>
 </body>
 </html>
@@ -820,13 +1205,23 @@ def main():
         print(f"[WARN] トラックレコード処理エラー: {e}")
         track_record = None
 
-    # 過去アーカイブ日付一覧の取得
+    # 過去アーカイブ日付一覧および全履歴データの取得
     import glob
     history_files = glob.glob(os.path.join(PROJECT_ROOT, "data", "history", "*.json"))
     archive_dates = sorted([os.path.splitext(os.path.basename(f))[0] for f in history_files], reverse=True)
     today_str = get_jst_now().strftime("%Y-%m-%d")
     if today_str not in archive_dates:
         archive_dates.insert(0, today_str)
+
+    all_history_map = {}
+    for hf in history_files:
+        d_name = os.path.splitext(os.path.basename(hf))[0]
+        try:
+            with open(hf, "r", encoding="utf-8") as f:
+                all_history_map[d_name] = json.load(f)
+        except Exception:
+            pass
+    all_history_json = json.dumps(all_history_map, ensure_ascii=False)
 
     # HTML出力
     os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
@@ -840,7 +1235,8 @@ def main():
         market_indices=market_indices,
         track_record=track_record,
         sector_dist=sector_dist,
-        archive_dates=archive_dates
+        archive_dates=archive_dates,
+        all_history_json=all_history_json
     )
 
     with open(OUTPUT_HTML_PATH, "w", encoding="utf-8") as f:

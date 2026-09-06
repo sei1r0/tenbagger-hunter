@@ -276,3 +276,141 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
     except Exception as e:
         print(f"[ERROR] Flex送信例外: {e}")
         send_notification(title, f"詳細レポートはこちら:\n{pages_url}")
+
+def send_close_wrap_flex(date_str, stock_results, stop_alerts, breakout_alerts, rebound_alerts, pages_url):
+    """東証大引けレビュー（15:40）のLINE Flex Message配信"""
+    token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+    user_id = os.getenv("LINE_USER_ID")
+
+    if not token or not user_id:
+        return
+
+    bubbles = []
+
+    # 1枚目: アラート・シグナル確定カード
+    alert_rows = []
+    if stop_alerts:
+        for a in stop_alerts[:3]:
+            alert_rows.append({
+                "type": "text", "text": a, "size": "xs", "color": "#f87171", "weight": "bold", "wrap": True, "margin": "xs"
+            })
+    if breakout_alerts:
+        for a in breakout_alerts[:3]:
+            alert_rows.append({
+                "type": "text", "text": a, "size": "xs", "color": "#34d399", "weight": "bold", "wrap": True, "margin": "xs"
+            })
+    if rebound_alerts:
+        for a in rebound_alerts[:3]:
+            alert_rows.append({
+                "type": "text", "text": a, "size": "xs", "color": "#60a5fa", "weight": "bold", "wrap": True, "margin": "xs"
+            })
+    if not alert_rows:
+        alert_rows.append({
+            "type": "text", "text": "本日、損切り到達や急変銘柄はありません。健全推移中。", "size": "xs", "color": "#94a3b8", "margin": "sm"
+        })
+
+    bubble_alerts = {
+        "type": "bubble",
+        "size": "kilo",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#0f172a",
+            "paddingAll": "12px",
+            "contents": [
+                {"type": "text", "text": f"🌆 東証大引けレビュー ({date_str})", "color": "#f59e0b", "weight": "bold", "size": "sm"},
+                {"type": "text", "text": "本日の損益・手仕舞い・ブレイク判定", "color": "#94a3b8", "size": "xxs", "margin": "xs"}
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "12px",
+            "contents": alert_rows
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "8px",
+            "contents": [
+                {
+                    "type": "button",
+                    "action": {"type": "uri", "label": "Webダッシュボードを開く", "uri": pages_url},
+                    "style": "primary",
+                    "color": "#38bdf8",
+                    "height": "sm"
+                }
+            ]
+        }
+    }
+    bubbles.append(bubble_alerts)
+
+    # 2枚目: 当日騰落ランキングカード
+    rank_rows = []
+    for r in stock_results[:6]:
+        sign = "+" if r["day_pct"] > 0 else ""
+        color = "#10b981" if r["day_pct"] >= 0 else "#ef4444"
+        rank_rows.append({
+            "type": "box",
+            "layout": "horizontal",
+            "margin": "xs",
+            "contents": [
+                {"type": "text", "text": f"{r['tier_icon']}{r['code']} {r['name']}", "size": "xs", "color": "#f8fafc", "flex": 6},
+                {"type": "text", "text": f"{sign}{r['day_pct']}%", "size": "xs", "color": color, "weight": "bold", "align": "end", "flex": 4}
+            ]
+        })
+
+    bubble_ranks = {
+        "type": "bubble",
+        "size": "kilo",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#0f172a",
+            "paddingAll": "12px",
+            "contents": [
+                {"type": "text", "text": "📊 監視銘柄 騰落ランキング", "color": "#38bdf8", "weight": "bold", "size": "sm"},
+                {"type": "text", "text": "本日の値動き上位サマリー", "color": "#94a3b8", "size": "xxs", "margin": "xs"}
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "12px",
+            "contents": rank_rows
+        }
+    }
+    bubbles.append(bubble_ranks)
+
+    flex_contents = {
+        "type": "carousel",
+        "contents": bubbles
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+
+    payload = {
+        "to": user_id,
+        "messages": [
+            {
+                "type": "flex",
+                "altText": f"🌆 東証大引けレビュー ({date_str})",
+                "contents": flex_contents
+            }
+        ]
+    }
+
+    try:
+        res = requests.post(LINE_PUSH_URL, headers=headers, json=payload, timeout=15)
+        if res.status_code == 200:
+            print("[INFO] 大引けレビュー LINE Flex Message送信成功。")
+        else:
+            print(f"[WARN] Flex送信失敗 (Status: {res.status_code}): {res.text}")
+    except Exception as e:
+        print(f"[ERROR] Flex送信例外: {e}")

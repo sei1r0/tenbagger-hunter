@@ -18,23 +18,18 @@ def archive_weekly_results(analyzed_stocks, date_str=None):
     os.makedirs(HISTORY_DIR, exist_ok=True)
     archive_path = os.path.join(HISTORY_DIR, f"{date_str}.json")
     
-    # 必要十分なフィールドのみを抽出して保存
     records = []
     for s in analyzed_stocks:
+        rec = dict(s)
+        rec["date"] = date_str
         a = s.get("analysis", {})
-        records.append({
-            "date": date_str,
-            "code": s.get("code"),
-            "name": s.get("name"),
-            "market": s.get("market"),
-            "sector": s.get("sector"),
-            "recommend_price": float(s.get("close", 0)),
-            "entry_price": float(a.get("entry_price", s.get("close", 0))),
-            "stop_loss": float(a.get("stop_loss", 0)),
-            "conviction_tier": a.get("conviction_tier", "A"),
-            "score": a.get("score", 80),
-            "theme_tags": a.get("theme_tags", [])
-        })
+        rec["recommend_price"] = float(s.get("close", 0))
+        rec["entry_price"] = float(a.get("entry_price", s.get("close", 0)))
+        rec["stop_loss"] = float(a.get("stop_loss", 0))
+        rec["conviction_tier"] = a.get("conviction_tier", "A")
+        rec["score"] = a.get("score", 80)
+        rec["theme_tags"] = a.get("theme_tags", [])
+        records.append(rec)
     
     with open(archive_path, "w", encoding="utf-8") as f:
         json.dump(records, f, ensure_ascii=False, indent=2)

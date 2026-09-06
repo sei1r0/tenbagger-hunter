@@ -17,7 +17,7 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
         pass
 
 from src.utils.market_calendar import guard_tokyo_market, get_jst_now
-from src.utils.notifier import send_notification
+from src.utils.notifier import send_notification, send_close_wrap_flex
 
 CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 
@@ -149,11 +149,11 @@ def run_daily_close_wrap():
         sign = "+" if r["day_pct"] > 0 else ""
         lines.append(f"・{r['tier_icon']}{r['code']} {r['name']}: {sign}{r['day_pct']}% ({r['close']}円)")
 
-    message_body = "\n".join(lines)
-    print(message_body)
+    # LINE通知（Flex Message ＋ テキストフォールバック）
+    repo_name = os.getenv("GITHUB_REPOSITORY", "sei1r0/tenbagger-hunter")
+    pages_url = f"https://{repo_name.split('/')[0]}.github.io/{repo_name.split('/')[1]}/"
 
-    # LINE通知
-    send_notification("東証大引けデイリーレビュー", message_body)
+    send_close_wrap_flex(now_str, stock_results, stop_alerts, breakout_alerts, rebound_alerts, pages_url)
     print("[INFO] 大引けレビュー配信完了。")
 
 if __name__ == "__main__":
