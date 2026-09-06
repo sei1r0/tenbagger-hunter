@@ -60,18 +60,6 @@
     "momentum_score": 3485.44
   },
   {
-    "code": "8918",
-    "name": "ランド",
-    "market": "スタンダード",
-    "sector": "不動産業",
-    "close": 11.0,
-    "market_cap_oku": 169.2,
-    "trading_value_man": 408215.1,
-    "high_52w": 11.0,
-    "vol_surge": 1.08,
-    "momentum_score": 2605.63
-  },
-  {
     "code": "3851",
     "name": "日本一ソフトウェア",
     "market": "スタンダード",
@@ -372,6 +360,18 @@
     "momentum_score": 126.65
   },
   {
+    "code": "6863",
+    "name": "ニレコ",
+    "market": "スタンダード",
+    "sector": "電気機器",
+    "close": 980.0,
+    "market_cap_oku": 70.1,
+    "trading_value_man": 8418.2,
+    "high_52w": 1010.0,
+    "vol_surge": 0.98,
+    "momentum_score": 117.69
+  },
+  {
     "code": "479A",
     "name": "ＰＲＯＮＩ",
     "market": "グロース",
@@ -382,18 +382,6 @@
     "high_52w": 2029.0,
     "vol_surge": 0.83,
     "momentum_score": 110.13
-  },
-  {
-    "code": "8562",
-    "name": "福島銀行",
-    "market": "スタンダード",
-    "sector": "銀行業",
-    "close": 400.0,
-    "market_cap_oku": 139.5,
-    "trading_value_man": 13424.0,
-    "high_52w": 418.2391357421875,
-    "vol_surge": 1.0,
-    "momentum_score": 96.23
   },
   {
     "code": "4627",
@@ -478,5 +466,17 @@
     "high_52w": 3810.0,
     "vol_surge": 0.81,
     "momentum_score": 63.7
+  },
+  {
+    "code": "6337",
+    "name": "テセック",
+    "market": "スタンダード",
+    "sector": "機械",
+    "close": 3560.0,
+    "market_cap_oku": 179.5,
+    "trading_value_man": 20220.8,
+    "high_52w": 3560.0,
+    "vol_surge": 0.56,
+    "momentum_score": 63.08
   }
 ]
