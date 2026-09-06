@@ -446,7 +446,7 @@ def main():
 
     # HTML出力
     os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
-    template = Template(HTML_TEMPLATE)
+    template = Template(HTML_TEMPLATE, autoescape=True)
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     html_output = template.render(
         generated_at=now_str,
