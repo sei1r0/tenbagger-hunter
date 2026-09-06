@@ -30,7 +30,7 @@ def run_batch_screener():
 
     df_stocks = pd.read_csv(STOCKS_CSV, dtype={"code": str})
     
-    # フィルター1: 市場区分を「グロース」および「スタンダード」に限定（低成長プライムを除外）
+    # フィルター1: 市場区分を「グロース」および「スタンダード」に限定
     df_stocks = df_stocks[df_stocks["market"].isin(["グロース", "スタンダード"])].copy()
     
     total_count = len(df_stocks)
@@ -92,7 +92,7 @@ def run_batch_screener():
                 if not (curr_close > sma25 and sma25 > sma75):
                     continue
 
-                # フィルター4: 52週高値から15%以内のブレイク初動水準（オニール型モメンタム）
+                # フィルター4: 52週高値から15%以内のブレイク初動水準
                 high_52w = float(closes.max())
                 if curr_close < (high_52w * 0.85):
                     continue
@@ -109,7 +109,6 @@ def run_batch_screener():
 
                 # フィルター5: 時価総額 300億円以下
                 if 0 < market_cap_oku <= MAX_MARKET_CAP_OKU:
-                    # 出来高急増率（直近5日平均 vs 25日平均）
                     vol5 = float(volumes.iloc[-5:].mean())
                     vol25 = float(volumes.iloc[-25:].mean())
                     vol_surge = round(vol5 / max(vol25, 1), 2)
@@ -133,10 +132,10 @@ def run_batch_screener():
 
         time.sleep(0.5)
 
-    # モメンタムスコア順（売買回転率 × 出来高急増率）にソート
+    # モメンタムスコア順にソート
     candidates.sort(key=lambda x: x["momentum_score"], reverse=True)
 
-    # 40件前後に厳選
+    # 上限40件に厳選
     if len(candidates) > TARGET_POOL_LIMIT:
         print(f"[INFO] 抽出 {len(candidates)} 件から初動上位 {TARGET_POOL_LIMIT} 銘柄を最終プールに設定しました。")
         candidates = candidates[:TARGET_POOL_LIMIT]
@@ -148,7 +147,7 @@ def run_batch_screener():
     elapsed = round(time.time() - start_time, 1)
     print(f"[INFO] スクリーニング完了: {len(candidates)} 件抽出 (所要時間: {elapsed}秒)")
 
-    # LINE通知
+    # LINE通知（文言を全件分析に修正）
     msg = f"東証厳選スクリーニング完了（所要時間: {elapsed}秒）\n合格銘柄数: {len(candidates)} 件\n\n"
     if candidates:
         top_samples = candidates[:5]
@@ -157,7 +156,7 @@ def run_batch_screener():
             msg += f"・{c['code']} {c['name']} ({c['market_cap_oku']}億 / 出来高急増:{c['vol_surge']}倍)\n"
         if len(candidates) > 5:
             msg += f"...他 {len(candidates) - 5} 銘柄\n"
-        msg += "\n※AIアナリストが上位15銘柄を深掘り分析します。"
+        msg += f"\n※AIアナリストが抽出全{len(candidates)}銘柄の完全深掘り分析を開始します。"
     else:
         msg += "今週は高精度ブレイク条件に合致する銘柄がありませんでした。"
 

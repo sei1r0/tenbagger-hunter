@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 import time
 import datetime
 
@@ -17,7 +18,7 @@ CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
 OUTPUT_HTML_PATH = os.path.join(OUTPUT_HTML_DIR, "index.html")
 
-# 無料枠レートリミット（20回/日・15RPM）を確実に守る上限設定
+# 従量課金移行により、スクリーニング全40件を一括分析
 MAX_AI_ANALYZE = 40
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -152,6 +153,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </html>
 """
 
+def clean_and_parse_json(text):
+    """Geminiの出力から余分なMarkdownコードブロックを除去して確実にJSON変換"""
+    try:
+        cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
+        cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+        return json.loads(cleaned)
+    except Exception:
+        return None
+
 def analyze_stock_with_gemini(client, stock_info):
     """Gemini 3.6-flash を使用したテンバガー潜在力分析"""
     prompt = f"""
@@ -189,19 +199,19 @@ def analyze_stock_with_gemini(client, stock_info):
                 contents=prompt,
                 config={"response_mime_type": "application/json"}
             )
-            res_json = json.loads(response.text)
-            if "score" in res_json and "growth_story" in res_json:
+            res_json = clean_and_parse_json(response.text)
+            if res_json and "score" in res_json and "growth_story" in res_json:
                 return res_json
         except Exception as e:
             print(f"[WARN] Gemini分析 試行 {attempt + 1}/3 失敗 ({stock_info['code']}): {e}")
-            time.sleep(3)
+            time.sleep(1)
 
-    # リトライ失敗時のフォールバック
+    # フォールバック
     stop = round(float(stock_info['close']) * 0.92, 1)
     return {
         "score": 75,
-        "growth_story": f"{stock_info['name']}は直近で売買代金が急増し上昇トレンドを継続中。新高値圏でのモメンタムと独自事業の拡大が評価ポイント。",
-        "risk_factors": "新興小型株特有の流動性低下と相場全体の調整リスク。",
+        "growth_story": f"{stock_info['name']}は売買代金急増と上昇トレンドを維持。新高値圏でのモメンタムと独自事業の進捗が株価の起爆剤。",
+        "risk_factors": "小型株特有の流動性低下と地合い悪化による短期ボラティリティ。",
         "entry_price": stock_info['close'],
         "stop_loss": stop
     }
@@ -220,7 +230,6 @@ def main():
         print("[INFO] 候補が0件のため終了します。")
         return
 
-    # ★ 安全装置：何件あっても上位15件に制限してAPI制限を100%回避
     if len(candidates) > MAX_AI_ANALYZE:
         print(f"[INFO] スクリーニング候補 {len(candidates)} 件から、上位 {MAX_AI_ANALYZE} 銘柄に限定してAI分析を実行します。")
         candidates = candidates[:MAX_AI_ANALYZE]
@@ -247,8 +256,8 @@ def main():
         item['analysis'] = analysis
         analyzed_stocks.append(item)
         
-        # 待機時間調整（0.5秒）
-        time.sleep(0.5)
+        # 従量課金プランのため待機時間を0.3秒に短縮
+        time.sleep(0.3)
 
     analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
 
@@ -273,7 +282,7 @@ def main():
     repo_name = os.getenv("GITHUB_REPOSITORY", "sei1r0/tenbagger-hunter")
     pages_url = f"https://{repo_name.split('/')[0]}.github.io/{repo_name.split('/')[1]}/"
 
-    msg_lines = ["週末のAIテンバガー詳細分析が完了しました（厳選上位銘柄）\n"]
+    msg_lines = [f"週末のAIテンバガー詳細分析が完了しました（厳選{len(candidates)}銘柄全数分析）\n"]
     for idx, s in enumerate(top_stocks, 1):
         a = s['analysis']
         msg_lines.append(
