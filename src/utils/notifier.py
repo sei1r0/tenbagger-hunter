@@ -125,6 +125,12 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
         moat = a.get("moat_rating", "MEDIUM")
         rs_str = f"RS:+{s.get('rs_rating', 0)}%"
         edge_tags = []
+        if s.get("is_stage2"):
+            edge_tags.append("🌊Stage2")
+        if s.get("is_golden_cross"):
+            edge_tags.append("✨GC初動")
+        if s.get("is_sound_base"):
+            edge_tags.append("📐ベース")
         if s.get("is_ultra_light"):
             edge_tags.append(f"🎈浮動{s.get('float_mcap_oku')}億")
         if s.get("is_fresh_ipo"):

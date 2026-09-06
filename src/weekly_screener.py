@@ -139,9 +139,16 @@ def run_batch_screener():
                 if trading_value_man < MIN_TRADING_VALUE_MAN:
                     continue
 
-                sma25 = float(closes.rolling(window=25).mean().iloc[-1])
-                sma75 = float(closes.rolling(window=75).mean().iloc[-1])
-                sma200 = float(closes.rolling(window=min(200, len(closes))).mean().iloc[-1])
+                sma5_series = closes.rolling(window=5).mean()
+                sma25_series = closes.rolling(window=25).mean()
+                sma75_series = closes.rolling(window=75).mean()
+                sma200_series = closes.rolling(window=min(200, len(closes))).mean()
+
+                sma5 = float(sma5_series.iloc[-1])
+                sma25 = float(sma25_series.iloc[-1])
+                sma75 = float(sma75_series.iloc[-1])
+                sma200 = float(sma200_series.iloc[-1])
+                sma200_20d_ago = float(sma200_series.iloc[-min(20, len(sma200_series))])
 
                 # フィルター3: パーフェクトオーダー（株価 > 25MA > 75MA かつ 株価 > 200MA）
                 if not (curr_close > sma25 and sma25 > sma75 and curr_close > sma200):
@@ -154,8 +161,46 @@ def run_batch_screener():
 
                 # フィルター5: 52週高値から15%以内（高値ブレイクアウト圏）
                 high_52w = float(closes.max())
+                low_52w = float(closes.min())
                 if curr_close < (high_52w * 0.85):
                     continue
+
+                # --- 総合トレンド分析エンジン（5大トレンド要素） ---
+                # 1. 200日線上昇 ＆ ミネルヴィニ式 Stage 2 トレンド判定
+                is_200ma_rising = bool(sma200 >= sma200_20d_ago)
+                is_stage2 = bool(curr_close > sma25 > sma75 > sma200 and is_200ma_rising)
+
+                # 2. ゴールデンクロス初動判定 (直近15日以内に25MAが75MA上抜け、または直近5日以内に5MAが25MA上抜け)
+                diff_25_75 = sma25_series - sma75_series
+                is_gc_25_75 = False
+                if len(diff_25_75) >= 16:
+                    rec_diffs = diff_25_75.iloc[-15:]
+                    if rec_diffs.iloc[-1] > 0 and (rec_diffs <= 0).any():
+                        is_gc_25_75 = True
+
+                diff_5_25 = sma5_series - sma25_series
+                is_gc_5_25 = False
+                if len(diff_5_25) >= 6:
+                    rec_5_25 = diff_5_25.iloc[-5:]
+                    if rec_5_25.iloc[-1] > 0 and (rec_5_25 <= 0).any():
+                        is_gc_5_25 = True
+
+                is_golden_cross = bool(is_gc_25_75 or is_gc_5_25)
+
+                # 3. 52週安値比リバウンド (+30%以上の上昇本命株)
+                low_rebound_pct = round(((curr_close - low_52w) / max(low_52w, 1)) * 100, 1)
+                is_52w_rebound = bool(low_rebound_pct >= 30.0)
+
+                # 4. 健全ベース形成 (高値からの調整が15%以内の浅いカップ/フラッグ)
+                pullback_from_high_pct = round(((high_52w - curr_close) / max(high_52w, 1)) * 100, 1)
+                is_sound_base = bool(pullback_from_high_pct <= 15.0)
+
+                # 5. MACD モメンタム好転 (MACD > Signal)
+                ema12 = closes.ewm(span=12, adjust=False).mean()
+                ema26 = closes.ewm(span=26, adjust=False).mean()
+                macd_line = ema12 - ema26
+                macd_signal = macd_line.ewm(span=9, adjust=False).mean()
+                is_macd_bullish = bool(macd_line.iloc[-1] > macd_signal.iloc[-1])
 
                 # 時価総額・ファンダメンタルズ取得
                 market_cap = 0
@@ -277,7 +322,7 @@ def run_batch_screener():
                     high_proximity = round(curr_close / high_52w, 3)
 
                     # テンバガー・プロフェッショナル複合スコア算出
-                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長] + [上場黄金期] + [成長加速] + [機関初期]
+                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長] + [上場黄金期] + [成長加速] + [機関初期] + [Stage2] + [GC初動] + [健全ベース] + [安値リバウンド] + [MACD好転]
                     turnover_score = min(trading_value_man / max(market_cap_oku, 1), 25.0)
                     surge_score = min(vol_surge * 5, 20.0)
                     growth_bonus = min(max(rev_growth_pct, 0) * 0.6, 20.0)
@@ -294,8 +339,15 @@ def run_batch_screener():
                     accel_bonus = 6.0 if is_accelerating else 0.0
                     inst_bonus = 5.0 if is_early_inst else 0.0
 
+                    # トレンド総合加点
+                    stage2_bonus = 8.0 if is_stage2 else 0.0
+                    gc_bonus = 7.0 if is_golden_cross else 0.0
+                    base_bonus = 5.0 if is_sound_base else 0.0
+                    rebound_bonus = 4.0 if is_52w_rebound else 0.0
+                    macd_bonus = 4.0 if is_macd_bullish else 0.0
+
                     total_momentum_score = round(
-                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus + ipo_bonus + accel_bonus + inst_bonus, 2
+                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus + ipo_bonus + accel_bonus + inst_bonus + stage2_bonus + gc_bonus + base_bonus + rebound_bonus + macd_bonus, 2
                     )
 
                     code_str = str(row_meta["code"])
@@ -311,6 +363,8 @@ def run_batch_screener():
                         "sma75": round(sma75, 1),
                         "sma200": round(sma200, 1),
                         "high_52w": round(high_52w, 1),
+                        "low_52w": round(low_52w, 1),
+                        "low_rebound_pct": low_rebound_pct,
                         "market_cap_oku": market_cap_oku,
                         "float_mcap_oku": float_mcap_oku,
                         "trading_value_man": trading_value_man,
@@ -330,6 +384,10 @@ def run_batch_screener():
                         "is_fresh_ipo": is_fresh_ipo,
                         "is_accelerating": is_accelerating,
                         "is_early_inst": is_early_inst,
+                        "is_stage2": is_stage2,
+                        "is_golden_cross": is_golden_cross,
+                        "is_sound_base": is_sound_base,
+                        "is_macd_bullish": is_macd_bullish,
                         "up_down_ratio": up_down_ratio,
                         "deviation_25_pct": round(deviation_25 * 100, 1),
                         "badge": "STAY" if is_stay else "NEW",
@@ -339,7 +397,9 @@ def run_batch_screener():
                     founder_str = f" / 創業者:{insider_held_pct}%" if insider_held_pct > 0 else ""
                     float_str = f" / 浮動株:{float_mcap_oku}億" if is_ultra_light else ""
                     ipo_str = " 🌱IPO黄金期" if is_fresh_ipo else ""
-                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}% / 売上:+{rev_growth_pct}%{founder_str}{vcp_str}{ipo_str} / スコア:{total_momentum_score})")
+                    gc_str = " ✨GC初動" if is_golden_cross else ""
+                    stage2_str = " 🌊Stage2" if is_stage2 else ""
+                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}%{stage2_str}{gc_str}{vcp_str}{ipo_str} / スコア:{total_momentum_score})")
 
             except Exception:
                 continue

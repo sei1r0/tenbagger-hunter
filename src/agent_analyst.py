@@ -137,6 +137,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .pill-ipo { background: rgba(52, 211, 153, 0.18); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
     .pill-accel { background: rgba(249, 115, 22, 0.18); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4); }
     .pill-inst { background: rgba(147, 197, 253, 0.18); color: #60a5fa; border: 1px solid rgba(147, 197, 253, 0.4); }
+    .pill-stage2 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.5); font-weight: bold; }
+    .pill-gc { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.5); font-weight: bold; }
+    .pill-base { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .pill-macd { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
 
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
@@ -304,6 +308,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               {% if stock.insider_held_pct and stock.insider_held_pct >= 20 %}
                 <span class="pill pill-founder">👑 創業者等: {{ stock.insider_held_pct }}%</span>
               {% endif %}
+              {% if stock.is_stage2 %}
+                <span class="pill pill-stage2">🌊 Stage 2 (本格上昇トレンド)</span>
+              {% endif %}
+              {% if stock.is_golden_cross %}
+                <span class="pill pill-gc">✨ GC初動ブレイク</span>
+              {% endif %}
+              {% if stock.is_sound_base %}
+                <span class="pill pill-base">📐 健全ベース形成</span>
+              {% endif %}
+              {% if stock.is_macd_bullish %}
+                <span class="pill pill-macd">⚡ MACD好転</span>
+              {% endif %}
               {% if stock.is_fresh_ipo %}
                 <span class="pill pill-ipo">🌱 上場黄金期 (IPO1〜5年)</span>
               {% endif %}
@@ -454,20 +470,29 @@ def analyze_stock_with_gemini(client, stock_info):
     ipo_str = "上場1〜5年の黄金成長期（IPO初動）" if stock_info.get("is_fresh_ipo") else "通常期"
     accel_str = "売上・利益成長が加速中（Acceleration）" if stock_info.get("is_accelerating") else "通常成長"
     inst_str = f"{stock_info.get('inst_held_pct', 0)}%（機関投資家の青田買い・本格買い余地大）" if stock_info.get("is_early_inst") else f"{stock_info.get('inst_held_pct', 0)}%"
+    trend_str = []
+    if stock_info.get("is_stage2"):
+        trend_str.append("Stage 2（200MA上向き・本格上昇トレンド）")
+    if stock_info.get("is_golden_cross"):
+        trend_str.append("直近ゴールデンクロス初動点灯")
+    if stock_info.get("is_sound_base"):
+        trend_str.append("高値圏の浅い健全ベース形成")
+    trend_summary_str = " / ".join(trend_str) if trend_str else "上昇パーフェクトオーダー推移"
 
     prompt = f"""
 あなたはお急成長小型株（テンバガー）投資のトップクオンツ＆ファンダメンタルズスペシャリストです。
-以下の企業スペック、需給指標（RS/VCP/浮動株）、創業者比率、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+以下の企業スペック、需給指標（RS/VCP/浮動株）、トレンド構造（Stage 2/GC）、創業者比率、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
 
 【対象銘柄スペック】
 銘柄コード: {stock_info['code']}
 銘柄名: {stock_info['name']}
 市場・業種: {stock_info['market']} / {stock_info['sector']}
 公式事業概要: {summary_str}
+トレンド構造: {trend_summary_str} (52週安値から+{stock_info.get('low_rebound_pct', 0)}%リバウンド)
 上場ステージ: {ipo_str}
 現在株価: {stock_info['close']}円
 25日移動平均線: {stock_info.get('sma25')}円 (乖離: +{stock_info.get('deviation_25_pct')}%)
-52週最高値: {stock_info.get('high_52w')}円
+52週最高値: {stock_info.get('high_52w')}円 / 52週最安値: {stock_info.get('low_52w')}円
 時価総額: {stock_info['market_cap_oku']}億円 (推定浮動株時価: {float_str})
 財務健全性（ネットキャッシュ）: {cash_str}
 収益モメンタム: {turnaround_str} / 成長加速度: {accel_str}
