@@ -26,7 +26,27 @@
     header { border-bottom: 1px solid var(--border); padding-bottom: 1.2rem; margin-bottom: 1.5rem; }
     h1 { margin: 0 0 0.4rem 0; font-size: 1.6rem; display: flex; align-items: center; gap: 0.5rem; }
     .updated { color: var(--text-sub); font-size: 0.85rem; }
-    
+
+    /* 主要指数パネル */
+    .market-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+    .market-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+    .market-title { font-size: 0.85rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 0.2rem; }
+    .market-val { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.3rem; }
+    .market-change { font-size: 0.75rem; }
+    .pos { color: var(--accent-green); }
+    .neg { color: var(--accent-red); }
+
+    /* コントロールバー */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -46,7 +66,7 @@
       border-radius: 6px;
       font-size: 0.9rem;
     }
-    
+
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -69,7 +89,7 @@
     .badge-new { background: #f59e0b; color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
     .tags { display: flex; gap: 0.35rem; margin-top: 0.25rem; }
     .tag { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
-    
+
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
       color: var(--accent-green);
@@ -80,7 +100,7 @@
       border: 1px solid var(--accent-green);
       text-align: center;
     }
-    
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -90,7 +110,7 @@
     .stat-item { background: rgba(0, 0, 0, 0.25); padding: 0.5rem 0.75rem; border-radius: 6px; }
     .stat-label { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 0.2rem; }
     .stat-val { font-size: 1rem; font-weight: bold; }
-    
+
     .catalyst-box {
       background: rgba(56, 189, 248, 0.05);
       border-left: 3px solid var(--accent-blue);
@@ -99,7 +119,7 @@
       font-size: 0.92rem;
       line-height: 1.6;
     }
-    
+
     .plan-box {
       display: flex;
       justify-content: space-between;
@@ -128,8 +148,58 @@
   <div class="container">
     <header>
       <h1>🎯 Tenbagger Hunter Pro 厳選レポート</h1>
-      <div class="updated">生成日時: 2026-09-06 07:55 | 分析銘柄数: 40件</div>
+      <div class="updated">生成日時: 2026-09-06 08:33 | 厳選銘柄数: 20件</div>
     </header>
+
+    <!-- 主要指数パネル -->
+    <div class="market-panel">
+      
+      <div class="market-card">
+        <div class="market-title">S&amp;P500</div>
+        <div class="market-val">7,718.6</div>
+        <div class="market-change">
+          <div>週差: <span class="pos">+6.8 (+0.09%)</span></div>
+          <div>年初: <span class="pos">+860.1 (+12.54%)</span></div>
+        </div>
+      </div>
+      
+      <div class="market-card">
+        <div class="market-title">FANG+</div>
+        <div class="market-val">80.84</div>
+        <div class="market-change">
+          <div>週差: <span class="neg">-0.01 (-0.01%)</span></div>
+          <div>年初: <span class="pos">+13.82 (+20.62%)</span></div>
+        </div>
+      </div>
+      
+      <div class="market-card">
+        <div class="market-title">オルカン</div>
+        <div class="market-val">161.89</div>
+        <div class="market-change">
+          <div>週差: <span class="pos">+0.80 (+0.5%)</span></div>
+          <div>年初: <span class="pos">+20.32 (+14.35%)</span></div>
+        </div>
+      </div>
+      
+      <div class="market-card">
+        <div class="market-title">金先物</div>
+        <div class="market-val">4,476.6</div>
+        <div class="market-change">
+          <div>週差: <span class="neg">-1.5 (-0.03%)</span></div>
+          <div>年初: <span class="pos">+162.2 (+3.76%)</span></div>
+        </div>
+      </div>
+      
+      <div class="market-card">
+        <div class="market-title">ドル円</div>
+        <div class="market-val">156.22</div>
+        <div class="market-change">
+          <div>週差: <span class="neg">-3.10 (-1.95%)</span></div>
+          <div>年初: <span class="neg">-0.51 (-0.33%)</span></div>
+        </div>
+      </div>
+      
+    </div>
 
     <div class="controls">
       <div>
@@ -149,11 +219,11 @@
     <div id="cardsContainer">
       
       <div class="card" 
-           data-score="80" 
+           data-score="82" 
            data-market-cap="150.2"
            data-surge="1.55"
            data-growth="0.0"
-           data-text="5586 Ｌａｂｏｒｏ．ＡＩ 情報・通信業 カスタムAI 生成AI DX">
+           data-text="5586 Ｌａｂｏｒｏ．ＡＩ 情報・通信業 生成AI カスタムAI DX">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -165,9 +235,9 @@
             </div>
             <div class="tags">
               
-                <span class="tag">#カスタムAI</span>
-              
                 <span class="tag">#生成AI</span>
+              
+                <span class="tag">#カスタムAI</span>
               
                 <span class="tag">#DX</span>
               
@@ -175,7 +245,7 @@
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            80点
+            82点
           </div>
         </div>
 
@@ -198,21 +268,21 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">920.0 / <span style="color: var(--accent-red);">850.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">920.0 / <span style="color: var(--accent-red);">851.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.5</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          オーダーメイド型AIソリューション事業を展開し、大手企業との取引実績と高い技術力が強み。足元の停滞期を超え、企業の生成AI実用化やDX投資の本格化に伴う業績急拡大が期待される。時価総額150億円規模の小型株であり、出来高増加を伴う上値ブレイクがテンバガー化への株価起爆剤となる。
+          大手企業向けにオーダーメイドのカスタムAIを提供するモデルを展開。生成AIの実装需要が高まる中、DX投資の波を捉えた案件大型化による業績の急拡大シナリオが期待できる。時価総額150億円規模の小型株であり浮動株も少ないため、大型導入事例の発表などが株価急騰の強力なカタリストになり得る。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 高度AIエンジニアの採用難による成長鈍化や人件費高騰。直近の業績伸び悩みによる割高感の顕在化およびグロース市場全体の地合い悪化リスク。</div>
+          <div><strong>警戒リスク:</strong> 直近売上成長率の停滞に伴う高PERの修正安リスク。競合台頭による獲得競争の激化や、大型案件の開始時期遅延による業績下振れが警戒される。</div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code=5586" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-5586/" target="_blank">📈 TradingView</a>
@@ -222,26 +292,26 @@
       
       <div class="card" 
            data-score="78" 
-           data-market-cap="74.5"
-           data-surge="3.28"
+           data-market-cap="129.3"
+           data-surge="4.68"
            data-growth="0.0"
-           data-text="5033 ヌーラボ 情報・通信業 SaaS DX 業務効率化">
+           data-text="6730 アクセル 電気機器 半導体 エッジAI Web3">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">5033 ヌーラボ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 情報・通信業)</span>
+              <span class="stock-title">6730 アクセル</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 電気機器)</span>
               
                 <span class="badge-stay">2週連続</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#SaaS</span>
+                <span class="tag">#半導体</span>
               
-                <span class="tag">#DX</span>
+                <span class="tag">#エッジAI</span>
               
-                <span class="tag">#業務効率化</span>
+                <span class="tag">#Web3</span>
               
             </div>
           </div>
@@ -254,11 +324,11 @@
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">1172.0円</div>
+            <div class="stat-val">1201.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">74.5億円</div>
+            <div class="stat-val">129.3億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -266,100 +336,28 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">3.28倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">4.68倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1160 / <span style="color: var(--accent-red);">1070</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">1200.0 / <span style="color: var(--accent-red);">1110.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.5</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          プロジェクト管理ツール「Backlog」を展開するSaaS企業。足元の出来高急増がトレンド転換を示唆。時価総額70億円台と小型で伸び代が大きく、価格改定効果や大企業向け導入拡大によるARR再加速が株価急騰のカタリストとなる。
+          主力の遊技機向けグラフィックスLSIで安定収益を確保しつつ、独自開発のエッジAI実装技術やWeb3分野などの新規事業が成長を牽引。時価総額130億円規模のファブレス半導体企業であり、出来高急増を伴うAI関連の大規模案件獲得や収益寄与の本格化が、株価の爆発的な上昇カタリストとなる。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 競合SaaS製品との差別化埋没や直近売上成長率の鈍化、広告宣伝費増大による利益率悪化および顧客解約率（チャーンレート）の上昇が懸念材料。</div>
+          <div><strong>警戒リスク:</strong> 主力である遊技機市場の規制や需要サイクルに業績が左右されやすい点に加え、新規AI事業のマネタイズ遅延や半導体市況悪化による下振れ懸念に警戒が必要。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=5033" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-5033/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="78" 
-           data-market-cap="191.2"
-           data-surge="1.6"
-           data-growth="0.0"
-           data-text="558A ＳＱＵＥＥＺＥ サービス業 ホテルDX インバウンド 省人化・自動化">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">558A ＳＱＵＥＥＺＥ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / サービス業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#ホテルDX</span>
-              
-                <span class="tag">#インバウンド</span>
-              
-                <span class="tag">#省人化・自動化</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            78点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">5880.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">191.2億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.6倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">5750 / <span style="color: var(--accent-red);">5320</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.6</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          宿泊業界の深刻な人手不足とインバウンド需要の急増を背景に、同社が提供するクラウド型ホテル運営ソリューション「suitebook」の需要が拡大。スマートホテル化や省人化ソリューションの導入加速が業績再拡大のカタリストとなり、出来高増加とともに高成長軌道への復帰と株価の上昇モメンタムが期待される。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の売上成長率伸び悩みによる高評価の修正リスクや、旅行・インバウンド需要の突発的な減速、競合他社とのシェア争い激化による利益率低下が最大の警戒要因。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=558A" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-558A/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6730" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6730/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
@@ -369,7 +367,7 @@
            data-market-cap="132.5"
            data-surge="1.64"
            data-growth="0.0"
-           data-text="5572 Ｒｉｄｇｅ－ｉ 情報・通信業 AI・深層学習 衛星データ DX">
+           data-text="5572 Ｒｉｄｇｅ－ｉ 情報・通信業 AI 宇宙 DX">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -381,9 +379,9 @@
             </div>
             <div class="tags">
               
-                <span class="tag">#AI・深層学習</span>
+                <span class="tag">#AI</span>
               
-                <span class="tag">#衛星データ</span>
+                <span class="tag">#宇宙</span>
               
                 <span class="tag">#DX</span>
               
@@ -414,21 +412,21 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">2980 / <span style="color: var(--accent-red);">2750</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">3000 / <span style="color: var(--accent-red);">2775</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.5</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 4.4</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          独自AIや衛星画像解析技術に強みを持ち、官公庁・大企業向けのDX支援で高い利益率を誇る。直近業績の停滞を脱し、AIソリューションの案件大型化や宇宙領域での共同開発加速が起爆剤となれば、小型ゆえの希少性から株価の急騰・大化けが期待される。
+          先端AIソリューション開発と衛星データ解析を強みとし、国策である宇宙開発関連やDX需要の波に乗る。直近売上横ばいも時価総額130億円規模と軽いため、AI・宇宙テーマの再見直しや大型案件獲得の発表を契機に業績モメンタムが再加速すれば、株価大爆発のカタリストとなり得る。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上高成長率が0.0%と足元の業績停滞が顕著であり、大型案件の失注や検収遅延に伴うさらなる下方修正リスクには最大限の警戒が必要。</div>
+          <div><strong>警戒リスク:</strong> 直近売上高成長率が0.0%と停滞しており、本格的な業績拡大の遅れやAI関連テーマの一巡に伴うモメンタム失速による下落リスクが警戒される。</div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code=5572" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-5572/" target="_blank">📈 TradingView</a>
@@ -437,95 +435,23 @@
       </div>
       
       <div class="card" 
-           data-score="78" 
-           data-market-cap="185.8"
-           data-surge="0.9"
-           data-growth="0.0"
-           data-text="5885 ジーデップ・アドバンス 卸売業 生成AI AIインフラ NVIDIA">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">5885 ジーデップ・アドバンス</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 卸売業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#生成AI</span>
-              
-                <span class="tag">#AIインフラ</span>
-              
-                <span class="tag">#NVIDIA</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            78点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">3380.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">185.8億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">0.9倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">3300.0 / <span style="color: var(--accent-red);">3050.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          NVIDIA最上位パートナーとして国内生成AI開発やデータセンター需要の拡大を直に受けるポジション。直近の業績は端境期で横ばいだが、次世代GPUサーバーの供給本格化と受注残の消化が進めば業績再加速が明確となり、株価の強力な浮揚カタリストとなるポテンシャルを秘める。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 特定ベンダー（NVIDIA）への高い依存度に伴う調達制限リスクや、大型案件の検収時期に起因する業績の四半期偏重・下振れリスク。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=5885" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-5885/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
            data-score="75" 
-           data-market-cap="191.3"
-           data-surge="1.3"
+           data-market-cap="166.1"
+           data-surge="1.55"
            data-growth="0.0"
-           data-text="7354 ダイレクトマーケティングミックス サービス業 サービス業">
+           data-text="7161 じもとホールディングス 銀行業 銀行業">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">7354 ダイレクトマーケティングミックス</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / サービス業)</span>
+              <span class="stock-title">7161 じもとホールディングス</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 銀行業)</span>
               
                 <span class="badge-stay">2週連続</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#サービス業</span>
+                <span class="tag">#銀行業</span>
               
             </div>
           </div>
@@ -538,11 +464,11 @@
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">420.0円</div>
+            <div class="stat-val">622.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">191.3億円</div>
+            <div class="stat-val">166.1億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -550,11 +476,11 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.3倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">1.55倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">420.0 / <span style="color: var(--accent-red);">386.4</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">622.0 / <span style="color: var(--accent-red);">572.2</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -564,302 +490,14 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          ダイレクトマーケティングミックスは直近売上高成長率+0.0%、出来高急増比1.3倍と強いモメンタムを維持。
+          じもとホールディングスはモメンタムと出来高水準を維持。独自事業の進捗が注目点。
         </div>
 
         <div class="plan-box">
           <div><strong>警戒リスク:</strong> 一時的な通信エラーのためテクニカル算定値を暫定表示。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=7354" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-7354/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="72" 
-           data-market-cap="129.3"
-           data-surge="4.68"
-           data-growth="0.0"
-           data-text="6730 アクセル 電気機器 半導体 AI Web3">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">6730 アクセル</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 電気機器)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#半導体</span>
-              
-                <span class="tag">#AI</span>
-              
-                <span class="tag">#Web3</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            72点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1201.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">129.3億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">4.68倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1190.0 / <span style="color: var(--accent-red);">1100.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          パチンコ向けLSIの安定収益を基盤に、独自AIプロセッサやWeb3関連技術など新規事業の成長が期待される。時価総額約129億円の小型株で出来高が急増しており、AI・半導体テーマの波及や新領域での大口案件獲得が株価急上昇の起爆剤となる可能性を秘める。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 主力の遊技機向けLSI事業における規制や需要変動リスクに加え、新規成長分野であるAI・Web3事業の本格的な収益化遅延リスクが存在します。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6730" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6730/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="72" 
-           data-market-cap="257.2"
-           data-surge="1.11"
-           data-growth="0.0"
-           data-text="2354 ＹＥ　ＤＩＧＩＴＡＬ 情報・通信業 物流DX スマートファクトリー AI・IoT">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">2354 ＹＥ　ＤＩＧＩＴＡＬ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#物流DX</span>
-              
-                <span class="tag">#スマートファクトリー</span>
-              
-                <span class="tag">#AI・IoT</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            72点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1443.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">257.2億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.11倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1380.0 / <span style="color: var(--accent-red);">1275.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          安川電機系として製造・物流向けＤＸに強み。物流２０２４年問題を受けた自動化倉庫システムやＡＩ・ＩｏＴ基盤の導入需要拡大が強い追い風。案件の大型化に伴う利益率向上と売上成長の再加速が、中長期的な株価急上昇を牽引する強力なカタリストとなる。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上高成長率の伸び悩みや、主要顧客層である製造・物流業界の設備投資抑制による受注遅延リスク。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=2354" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-2354/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="68" 
-           data-market-cap="71.2"
-           data-surge="4.22"
-           data-growth="0.0"
-           data-text="3653 モルフォ 情報・通信業 エッジAI 画像処理 車載IT">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">3653 モルフォ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#エッジAI</span>
-              
-                <span class="tag">#画像処理</span>
-              
-                <span class="tag">#車載IT</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            68点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1379.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">71.2億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">4.22倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1360.0 / <span style="color: var(--accent-red);">1258.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          独自の画像処理・エッジAI技術を強みに、スマホ依存からの脱却と車載・産業用カメラ領域への拡大が成長の鍵。直近の売上停滞期を経て出来高が急増しており、エッジAI需要の本格化に伴う黒字化定着や大型案件獲得が株価急浮上の起爆剤（カタリスト）となる期待が高まる。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上高成長率0.0%に見られる業績低迷の長期化リスクや、主要顧客の需要鈍化に伴う収益性の悪化、出来高急増後の急激な失速リスクに警戒が必要。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3653" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3653/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="68" 
-           data-market-cap="43.3"
-           data-surge="2.95"
-           data-growth="0.0"
-           data-text="4052 フィーチャ 情報・通信業 画像認識AI 自動運転 エッジAI">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">4052 フィーチャ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#画像認識AI</span>
-              
-                <span class="tag">#自動運転</span>
-              
-                <span class="tag">#エッジAI</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            68点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">740.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">43.3億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">2.95倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">725.0 / <span style="color: var(--accent-red);">670.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          画像認識AIやエッジAI技術に強みを持つ超小型株。足元の売上成長は横ばいだが、出来高急増が示す通り市場の関心は急上昇中。車載向けADASや防犯・産業向けAIカメラの大型案件獲得、大手企業との提携発表が株価を爆発させるカタリストとなり、時価総額の小ささから一気に大化けする潜在力を秘める。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の売上高成長率が0.0%と業績拡大が足踏み状態であり、AI実装の収益化遅延や主要顧客の投資縮小による業績低迷リスクには厳格な警戒が必要。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=4052" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-4052/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=7161" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-7161/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
@@ -869,7 +507,7 @@
            data-market-cap="107.6"
            data-surge="3.52"
            data-growth="0.0"
-           data-text="3083 スターシーズ 小売業 インバウンド EC・通販 リテールテック">
+           data-text="3083 スターシーズ 小売業 インバウンド リユース 事業再生">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -883,9 +521,9 @@
               
                 <span class="tag">#インバウンド</span>
               
-                <span class="tag">#EC・通販</span>
+                <span class="tag">#リユース</span>
               
-                <span class="tag">#リテールテック</span>
+                <span class="tag">#事業再生</span>
               
             </div>
           </div>
@@ -914,151 +552,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1220 / <span style="color: var(--accent-red);">1130</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          出来高の急増（3.52倍）は強い資金流入のシグナルであり、時価総額100億円規模の小型さから上値の軽さが魅力です。新規事業の本格化や事業構造改革などのカタリストにより業績変貌の思惑が高まれば、テーマ株としての追随買いを集め、株価の大幅なトレンド転換と急騰が期待されます。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の売上高成長率が0.0%と足元の業績裏付けが乏しく、一過性の出来高急増による高値掴みや業績失望売りのリスクに警戒が必要です。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3083" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3083/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="68" 
-           data-market-cap="89.4"
-           data-surge="0.83"
-           data-growth="0.0"
-           data-text="479A ＰＲＯＮＩ 情報・通信業 B2Bマッチング DX プラットフォーム">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">479A ＰＲＯＮＩ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#B2Bマッチング</span>
-              
-                <span class="tag">#DX</span>
-              
-                <span class="tag">#プラットフォーム</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            68点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1987.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">89.4億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">0.83倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1920.0 / <span style="color: var(--accent-red);">1776.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.3</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          B2B受発注プラットフォーム「PRONIアイミツ」を展開。時価総額約89億円と小型でテンバガー候補の条件を満たす。直近売上成長は横ばいだが、受発注DX需要の拡大や新規顧客開拓、マッチング精度の向上によるリピート向上、収益性改善が中期的な再成長と株価上昇の強力なカタリストとなる。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の売上高成長率が0.0%とモメンタムの鈍化が著しく、マッチング件数の伸び悩みや競合激化による業績停滞リスクが最大の警戒点。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=479A" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-479A/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="68" 
-           data-market-cap="141.6"
-           data-surge="1.58"
-           data-growth="0.0"
-           data-text="3793 ドリコム 情報・通信業 スマホゲーム Web3 IPコンテンツ">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">3793 ドリコム</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#スマホゲーム</span>
-              
-                <span class="tag">#Web3</span>
-              
-                <span class="tag">#IPコンテンツ</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            68点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">496.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">141.6億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.58倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">485.0 / <span style="color: var(--accent-red);">448.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">1220.0 / <span style="color: var(--accent-red);">1128.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -1068,57 +562,57 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          有名IPを活用した新作スマホゲームの世界的ヒットや、Web3・ブロックチェーンゲーム事業の本格展開が株価急騰の起爆剤となり得ます。時価総額140億円規模と小型であり、ヒット作一つで業績が著しく変貌する高いボラティリティを秘めています。出来高増加に伴うトレンド転換からの大化けに要注目です。
+          出来高が3.52倍と急増しており、短期的な資金流入が顕著です。直近の売上成長率は横ばいですが、時価総額100億円程度と小型で株価軽快度が高く、事業構造改革や新規テーマ事業への参入による業績急拡大の思惑がカタリストとなります。テーマ買われによるブレイクアウトからの短期急騰劇が期待される局面です。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 新作ゲームタイトルのリリース遅延や不発リスクに加え、既存タイトルの減衰およびWeb3関連事業の収益化の遅れが業績を下押しする懸念があります。</div>
+          <div><strong>警戒リスク:</strong> 直近売上高成長率が0%と本業の成長が伴っておらず、出来高急増が一時的なマネーゲームに終わった場合、一転して急落する高い株価ボラティリティリスクが存在します。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3793" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3793/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3083" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3083/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
       
       <div class="card" 
-           data-score="68" 
-           data-market-cap="283.4"
-           data-surge="0.81"
+           data-score="65" 
+           data-market-cap="225.1"
+           data-surge="1.19"
            data-growth="0.0"
-           data-text="5537 ＡｌｂａＬｉｎｋ 不動産業 空き家再生 不動産DX 地方創生">
+           data-text="1436 グリーンエナジー＆カンパニー 建設業 再生可能エネルギー 脱炭素・GX スマート住宅">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">5537 ＡｌｂａＬｉｎｋ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 不動産業)</span>
+              <span class="stock-title">1436 グリーンエナジー＆カンパニー</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 建設業)</span>
               
                 <span class="badge-stay">2週連続</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#空き家再生</span>
+                <span class="tag">#再生可能エネルギー</span>
               
-                <span class="tag">#不動産DX</span>
+                <span class="tag">#脱炭素・GX</span>
               
-                <span class="tag">#地方創生</span>
+                <span class="tag">#スマート住宅</span>
               
             </div>
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            68点
+            65点
           </div>
         </div>
 
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">3510.0円</div>
+            <div class="stat-val">1820.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">283.4億円</div>
+            <div class="stat-val">225.1億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -1126,28 +620,100 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">0.81倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">1.19倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">3380 / <span style="color: var(--accent-red);">3120</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">1800.0 / <span style="color: var(--accent-red);">1665.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.7</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          全国的な空き家問題の深刻化を背景に、訳あり不動産の買取再生プラットフォームとして独自ポジションを確立。DX活用と強固な仕入れ体制により高利益率を維持。今後は拠点拡大に伴う売上成長の再加速がカタリストとなり、株式市場での再評価と大幅な株価上昇が期待される。
+          国策であるGX（グリーン・トランスフォーメーション）推進に伴い、再生可能エネルギー投資や自家消費型太陽光事業の急拡大が期待されます。直近の業績は横ばい圏ですが、脱炭素ソリューション事業への特化による利益率改善や、EPC事業の受注増加が業績急拡大の起爆剤となり、株価の再評価を促す見通しです。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の成長率鈍化に伴うモメンタム低下と流動性の低さ。また、不動産市況の悪化や競合他社との仕入れ競争激化による利益率低下が最大の懸念点。</div>
+          <div><strong>警戒リスク:</strong> 部材価格高騰による建設コスト上昇リスクや、電力買取価格・規制変更などの政策動向、直近の売上成長率低迷による株価モメンタム不全リスクに警戒が必要です。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=5537" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-5537/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=1436" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-1436/" target="_blank">📈 TradingView</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" 
+           data-score="65" 
+           data-market-cap="41.8"
+           data-surge="0.65"
+           data-growth="0.0"
+           data-text="150A ＪＳＨ サービス業 障害者雇用支援 地方創生 ESG">
+        <div class="card-header">
+          <div>
+            <div class="stock-title-wrap">
+              <span class="stock-title">150A ＪＳＨ</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / サービス業)</span>
+              
+                <span class="badge-stay">2週連続</span>
+              
+            </div>
+            <div class="tags">
+              
+                <span class="tag">#障害者雇用支援</span>
+              
+                <span class="tag">#地方創生</span>
+              
+                <span class="tag">#ESG</span>
+              
+            </div>
+          </div>
+          <div class="score-badge">
+            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
+            65点
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">現在株価</div>
+            <div class="stat-val">773.0円</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">時価総額</div>
+            <div class="stat-val">41.8億円</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">直近売上高YoY</div>
+            <div class="stat-val" style="color: inherit">+0.0%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">出来高急増度</div>
+            <div class="stat-val" style="color: var(--accent-blue);">0.65倍</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">買い目安 / 損切り</div>
+            <div class="stat-val" style="font-size: 0.9rem;">750 / <span style="color: var(--accent-red);">695</span></div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">リスクリワード比</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
+          </div>
+        </div>
+
+        <div class="catalyst-box">
+          <strong>【成長ストーリー＆カタリスト】</strong><br>
+          法定雇用率引き上げに伴う企業の障害者雇用支援（農園型等）需要の拡大が強力な追風。時価総額41億円と超小型なため、新規開拓によるストック収益の再加速や黒字幅拡大が好感されれば一気に買われる潜在力を秘める。地方創生×ESGの国策テーマ合致による評価一変が株価急騰の起爆剤。
+        </div>
+
+        <div class="plan-box">
+          <div><strong>警戒リスク:</strong> 直近の売上成長率が停滞しており業績モメンタムの弱さが懸念。出来高も細っており、流動性リスクおよび株価下落時の損切り困難リスクが高まる点に警戒が必要。</div>
+          <div class="action-links">
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=150A" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-150A/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
@@ -1157,7 +723,7 @@
            data-market-cap="28.0"
            data-surge="4.6"
            data-growth="0.0"
-           data-text="3645 メディカルネット 情報・通信業 医療DX ヘルスケア 歯科プラットフォーム">
+           data-text="3645 メディカルネット 情報・通信業 ヘルステック 歯科DX 医療プラットフォーム">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -1169,11 +735,11 @@
             </div>
             <div class="tags">
               
-                <span class="tag">#医療DX</span>
+                <span class="tag">#ヘルステック</span>
               
-                <span class="tag">#ヘルスケア</span>
+                <span class="tag">#歯科DX</span>
               
-                <span class="tag">#歯科プラットフォーム</span>
+                <span class="tag">#医療プラットフォーム</span>
               
             </div>
           </div>
@@ -1206,17 +772,17 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          歯科医療に特化したポータルサイトの集客力と医療DX支援を展開。時価総額28億円と超小型で、出来高4.6倍の急増は底打ちからの反転シグナル。足元の売上成長は停滞も、歯科プラットフォームのストック収入拡大やM&Aによる事業領域拡張が業績再加速のカタリストとなり、テンバガー候補として急浮上する。
+          歯科医療ポータルサイトの安定基盤に加え、歯科DXや海外事業の拡大が成長の鍵。時価総額28億円と極小規模なため、新規サービス開始や業績上方修正による上方ブレイクの伸び代が大きい。直近の出来高4.6倍急増は市場の注目度向上を示唆しており、本格的な業績加速が伴えば株価の大幅上昇に期待。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の売上高成長率が0.0%と業績モメンタムが鈍化しており、本業の伸び悩みによる株価の上値の重さや、出来高急増後の急激な失速リスクに警戒が必要。</div>
+          <div><strong>警戒リスク:</strong> 直近売上高成長率が0.0%と伸び悩んでおり、業績の本格的な成長シナリオが崩れた場合や、出来高急増後の売り圧力による株価の低迷リスクに警戒が必要。</div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3645" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3645/" target="_blank">📈 TradingView</a>
@@ -1226,26 +792,26 @@
       
       <div class="card" 
            data-score="62" 
-           data-market-cap="68.2"
-           data-surge="3.44"
+           data-market-cap="133.5"
+           data-surge="2.18"
            data-growth="0.0"
-           data-text="3851 日本一ソフトウェア 情報・通信業 ゲーム IPコンテンツ グローバル展開">
+           data-text="6904 原田工業 電気機器 車載アンテナ コネクテッドカー EV">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">3851 日本一ソフトウェア</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
+              <span class="stock-title">6904 原田工業</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 電気機器)</span>
               
                 <span class="badge-stay">2週連続</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#ゲーム</span>
+                <span class="tag">#車載アンテナ</span>
               
-                <span class="tag">#IPコンテンツ</span>
+                <span class="tag">#コネクテッドカー</span>
               
-                <span class="tag">#グローバル展開</span>
+                <span class="tag">#EV</span>
               
             </div>
           </div>
@@ -1258,11 +824,11 @@
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">1347.0円</div>
+            <div class="stat-val">631.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">68.2億円</div>
+            <div class="stat-val">133.5億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -1270,11 +836,83 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">3.44倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">2.18倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1320.0 / <span style="color: var(--accent-red);">1221.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">615 / <span style="color: var(--accent-red);">570</span></div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">リスクリワード比</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
+          </div>
+        </div>
+
+        <div class="catalyst-box">
+          <strong>【成長ストーリー＆カタリスト】</strong><br>
+          自動車用アンテナ世界大手の同社は、コネクテッドカーやEV普及に伴う高機能アンテナ（5G・V2X対応）の需要拡大が中長期の成長ドライバー。直近売上は横ばいも出来高が急増しており、車載通信技術の高度化による単価上昇や新製品投入が業績急再拡大のカタリストとなり、株価の本格反転が見込まれます。
+        </div>
+
+        <div class="plan-box">
+          <div><strong>警戒リスク:</strong> 主要顧客である完成車メーカーの生産調整リスクや原材料高騰に加え、直近の売上成長率が停滞しており、高付加価値製品への移行遅れが業績悪化につながるリスク。</div>
+          <div class="action-links">
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6904" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6904/" target="_blank">📈 TradingView</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" 
+           data-score="62" 
+           data-market-cap="187.1"
+           data-surge="1.59"
+           data-growth="0.0"
+           data-text="3850 エヌ・ティ・ティ・データ・イントラマート 情報・通信業 DX ローコード BPM">
+        <div class="card-header">
+          <div>
+            <div class="stock-title-wrap">
+              <span class="stock-title">3850 エヌ・ティ・ティ・データ・イントラマート</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
+              
+                <span class="badge-stay">2週連続</span>
+              
+            </div>
+            <div class="tags">
+              
+                <span class="tag">#DX</span>
+              
+                <span class="tag">#ローコード</span>
+              
+                <span class="tag">#BPM</span>
+              
+            </div>
+          </div>
+          <div class="score-badge">
+            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
+            62点
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">現在株価</div>
+            <div class="stat-val">3840.0円</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">時価総額</div>
+            <div class="stat-val">187.1億円</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">直近売上高YoY</div>
+            <div class="stat-val" style="color: inherit">+0.0%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">出来高急増度</div>
+            <div class="stat-val" style="color: var(--accent-blue);">1.59倍</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">買い目安 / 損切り</div>
+            <div class="stat-val" style="font-size: 0.9rem;">3750.0 / <span style="color: var(--accent-red);">3460.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -1284,24 +922,24 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          時価総額60億円台の超小型株であり、主力IPの新作投入や世界市場向けマルチプラットフォーム展開が業績急拡大の起爆剤となる。直近の出来高急増は資金流入の好兆候。海外ライセンスアウトや新規IPのヒットにより利益率が急改善すれば、株価の段階的な見直しとテンバガーに向けた動意付けが期待される。
+          自社開発のDX推進基盤『intra-mart』はローコード開発やBPM領域で強固な顧客基盤を持つ。直近売上は横ばいだが、クラウド移行の進展と生成AI連携機能の拡充が業績再加速のカタリスト。大手企業の業務効率化ニーズを取り込み、ストック収益拡大による利益率向上が株価再評価を牽引する。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 新作タイトルの延期や不調による業績下振れリスク。直近の売上成長率が横ばいであり、IPの陳腐化や開発力低下に伴うボラティリティの高さに警戒が必要。</div>
+          <div><strong>警戒リスク:</strong> 直近売上高成長率の伸び悩み（+0.0%）に見られる成長減速懸念や、IT投資抑制による導入遅延、競合SaaSとのシェア争い激化リスク。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3851" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3851/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3850" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3850/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
       
       <div class="card" 
-           data-score="62" 
+           data-score="58" 
            data-market-cap="41.5"
            data-surge="3.96"
            data-growth="0.0"
-           data-text="4394 エクスモーション 情報・通信業 SDV 自動運転 DX">
+           data-text="4394 エクスモーション 情報・通信業 自動運転 組み込みソフト DX">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -1313,9 +951,9 @@
             </div>
             <div class="tags">
               
-                <span class="tag">#SDV</span>
-              
                 <span class="tag">#自動運転</span>
+              
+                <span class="tag">#組み込みソフト</span>
               
                 <span class="tag">#DX</span>
               
@@ -1323,7 +961,7 @@
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
+            58点
           </div>
         </div>
 
@@ -1356,11 +994,11 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          自動車のSDV化や自動運転技術の高度化に伴い、高品質な組込みソフト検証需要が急増。直近の出来高急増は底打ち感を示唆し、大手自動車メーカー向けコンサルティングの再拡大や人材育成サービス「Eureka Box」の課金拡大が業績再成長のカタリストとなる。
+          自動車向け組み込みソフト検証の高度化需要や自動運転開発の加速を背景に、コンサルティング需要の再拡大が期待される。時価総額約41億円と超小型なため、出来高急増に伴う浮動株の急速な吸収が進めば、業績底打ちからの急激な株価居所変えとトレンド転換による大化けが狙える。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 顧客である自動車業界の研究開発投資抑制やエンジニア不足による稼働率低下、直近売上高成長率の伸び悩み長期化による株価の下押しリスクに警戒が必要。</div>
+          <div><strong>警戒リスク:</strong> 直近売上成長率が0%と業績モメンタムの停滞が続いており、人材不足や受注遅延により本業の成長再開が遅れた場合、株価の戻り売り圧力に押されるリスクがある。</div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code=4394" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-4394/" target="_blank">📈 TradingView</a>
@@ -1369,44 +1007,44 @@
       </div>
       
       <div class="card" 
-           data-score="62" 
-           data-market-cap="33.7"
-           data-surge="1.51"
+           data-score="58" 
+           data-market-cap="68.2"
+           data-surge="3.44"
            data-growth="0.0"
-           data-text="196A ＭＦＳ その他金融業 FinTech 住宅ローン 金利上昇関連">
+           data-text="3851 日本一ソフトウェア 情報・通信業 ゲーム IPコンテンツ グローバル">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">196A ＭＦＳ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / その他金融業)</span>
+              <span class="stock-title">3851 日本一ソフトウェア</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
               
                 <span class="badge-stay">2週連続</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#FinTech</span>
+                <span class="tag">#ゲーム</span>
               
-                <span class="tag">#住宅ローン</span>
+                <span class="tag">#IPコンテンツ</span>
               
-                <span class="tag">#金利上昇関連</span>
+                <span class="tag">#グローバル</span>
               
             </div>
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
+            58点
           </div>
         </div>
 
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">330.0円</div>
+            <div class="stat-val">1347.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">33.7億円</div>
+            <div class="stat-val">68.2億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -1414,110 +1052,38 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.51倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">3.44倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">320.0 / <span style="color: var(--accent-red);">296.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">1320 / <span style="color: var(--accent-red);">1220</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.3</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          住宅ローン比較プラットフォーム「モゲチェック」を運営。日銀の追加利上げ観測を背景に、固定・変動ローンの見直し需要が急増中。超小型な時価総額33億円規模であり、プラットフォームの拡大と金利上昇テーマが合致すれば、黒字化定着とともに株価の飛躍的な評価替え（マルチプル・エクスパンション）が期待できる。
+          時価総額68億円の小型ゲーム会社で自社IPのグローバル展開が強み。出来高3.4倍急増は市場の注目再燃を示唆。直近成長率は横ばいも、海外向け新作タイトルの大ヒットや有力IPのライセンス活用が起爆剤となり、急激な業績モメンタム変化による大幅高が期待されます。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上成長の停滞に伴う業績低迷リスクおよび広告宣伝費等のコスト増加による黒字化遅延。時価総額の小ささゆえの株価ボラティリティと流動性リスクに警戒。</div>
+          <div><strong>警戒リスク:</strong> ヒット作依存度が高く、新作タイトルの開発遅延や売上不振が直ちに業績低下へ直結するリスク、およびゲーム業界における競争激化による収益悪化に警戒が必要です。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=196A" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-196A/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3851" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3851/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
       
       <div class="card" 
-           data-score="62" 
-           data-market-cap="41.8"
-           data-surge="0.65"
-           data-growth="0.0"
-           data-text="150A ＪＳＨ サービス業 障害者雇用 地方創生 ヘルスケア">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">150A ＪＳＨ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / サービス業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#障害者雇用</span>
-              
-                <span class="tag">#地方創生</span>
-              
-                <span class="tag">#ヘルスケア</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">773.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">41.8億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">0.65倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">750.0 / <span style="color: var(--accent-red);">695.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          地方での障害者雇用支援農園事業を展開。法定雇用率引き上げ（26年4月にも拡大）に伴う企業の支援需要増が強力なカタリスト。時価総額40億円台の超小型株であり、業績再拡大と大口資金の流入が確認できれば、極めて軽い需給を背景に一気に株価が跳ね上がる潜在力を秘める。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上成長率の停滞（+0.0%）と出来高減少が課題。法定雇用率引き上げ需要を取り込めず業績再加速が遅れた場合、株価低迷が長期化するリスクがある。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=150A" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-150A/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="62" 
+           data-score="58" 
            data-market-cap="56.8"
            data-surge="1.9"
            data-growth="0.0"
-           data-text="6599 エブレン 電気機器 半導体製造装置 産業用PC 防衛">
+           data-text="6599 エブレン 電気機器 産業用PC 半導体製造装置 防衛エレクトロニクス">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -1529,17 +1095,17 @@
             </div>
             <div class="tags">
               
-                <span class="tag">#半導体製造装置</span>
-              
                 <span class="tag">#産業用PC</span>
               
-                <span class="tag">#防衛</span>
+                <span class="tag">#半導体製造装置</span>
+              
+                <span class="tag">#防衛エレクトロニクス</span>
               
             </div>
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
+            58点
           </div>
         </div>
 
@@ -1562,295 +1128,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">3700 / <span style="color: var(--accent-red);">3420</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          時価総額50億円規模の超小型株で、出来高急増が動意を示唆。半導体製造装置や防衛・インフラ向け産業用電子機器の需要回復が業績再拡大のカタリストです。足元の売上成長は横ばいも、受注残の高水準推移による業績上方修正やテーマ株化による大幅なPERマルチプル拡大を通じた急騰展開が期待されます。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上成長率が0.0%と停滞しており本業拡大の確証がない点。超小型株特有の流動性リスクや大口顧客の設備投資動向による業績ブレ幅にも警戒が必要です。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6599" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6599/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="62" 
-           data-market-cap="187.1"
-           data-surge="1.59"
-           data-growth="0.0"
-           data-text="3850 エヌ・ティ・ティ・データ・イントラマート 情報・通信業 DX ローコード 業務自動化">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">3850 エヌ・ティ・ティ・データ・イントラマート</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#DX</span>
-              
-                <span class="tag">#ローコード</span>
-              
-                <span class="tag">#業務自動化</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">3840.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">187.1億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.59倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">3750.0 / <span style="color: var(--accent-red);">3470.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          企業向け業務基盤「intra-mart」のクラウドシフトとローコード開発需要の拡大が起爆剤。NTTデータグループの強固な顧客基盤を活用した大型案件獲得に加え、生成AI連携による業務自動化機能の実装が加速すれば、停滞する売上成長の再加速に伴い株価の大幅再評価が期待される。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上成長率が0.0%と伸び悩んでおり、SaaS競合との差別化難航や開発コスト増大による利益率低下、大型案件の検収遅延に伴う業績下振れリスクに注意を要する。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3850" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3850/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="62" 
-           data-market-cap="146.6"
-           data-surge="1.87"
-           data-growth="0.0"
-           data-text="4627 ナトコ 化学 高機能化学 電子材料 パワー半導体">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">4627 ナトコ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 化学)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#高機能化学</span>
-              
-                <span class="tag">#電子材料</span>
-              
-                <span class="tag">#パワー半導体</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1940.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">146.6億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.87倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1900.0 / <span style="color: var(--accent-red);">1760.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.28</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          独自の微粒子分散・高分子合成技術を強みに高機能性塗料や電子材料分野へ注力。直近業績は横ばいも出来高増加で資金流入の兆候が見られる。パワー半導体や次世代ディスプレイ向け高付加価値材料の採用拡大による利益率改善と収益再成長が、株価急騰の起爆剤となる。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> ナフサ等主要原材料価格の高騰に伴う利益率圧迫リスクに加え、自動車や建材市場など主要需要業界の景気減速による売上成長の停滞。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=4627" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-4627/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="62" 
-           data-market-cap="225.1"
-           data-surge="1.19"
-           data-growth="0.0"
-           data-text="1436 グリーンエナジー＆カンパニー 建設業 再生可能エネルギー 脱炭素 クリーンテック">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">1436 グリーンエナジー＆カンパニー</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 建設業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#再生可能エネルギー</span>
-              
-                <span class="tag">#脱炭素</span>
-              
-                <span class="tag">#クリーンテック</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            62点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1820.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">225.1億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.19倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1780.0 / <span style="color: var(--accent-red);">1640.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          脱炭素政策や再生可能エネルギー需要拡大を追い風に、太陽光発電関連事業や省エネ住宅分野での再成長が期待されます。直近業績は横ばいですが、PPAモデルの普及や蓄電池関連の受注拡大、官民連携プロジェクトの本格化が株価を大きく押し上げる強力なカタリストとなる見込みです。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 資材価格の高騰による採算悪化や電力市場の制度変更リスクに加え、直近の売上高成長率停滞の長期化に伴う成長期待の剥落リスクには十分な警戒が必要です。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=1436" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-1436/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="58" 
-           data-market-cap="239.7"
-           data-surge="4.38"
-           data-growth="0.0"
-           data-text="7743 シード 精密機器 コンタクトレンズ ヘルスケア 海外展開">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">7743 シード</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 精密機器)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#コンタクトレンズ</span>
-              
-                <span class="tag">#ヘルスケア</span>
-              
-                <span class="tag">#海外展開</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            58点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">792.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">239.7億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">4.38倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">785.0 / <span style="color: var(--accent-red);">728.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">3600.0 / <span style="color: var(--accent-red);">3330.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -1860,86 +1138,14 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          国内コンタクトレンズ市場での堅調な需要に加え、オルソケラトロジーなど高付加価値領域やアジアを中心とした海外市場への積極展開が成長を牽引。直近の出来高急増は株価底打ちと業績回復シナリオを織り込む動きと見られ、新製品投入や海外販売網拡大による利益率改善が株価急騰のカタリストとなります。
+          時価総額50億円台の超小型株で浮動株が少なく、防衛や半導体装置向けカスタム電源・ラックの特需が起爆剤となり得る。直近の業績は横ばいだが出来高が急増しており、大手顧客からの大型受注プレスリリースや業績上方修正が発表されれば、極めて強い上値追いのモメンタムが発生する。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近の売上高成長率が伸び悩んでおり、原材料価格の高騰や為替変動に伴う製造コスト増、国内価格競争の激化による業績低迷リスクに警戒が必要です。</div>
+          <div><strong>警戒リスク:</strong> 直近の売上高成長率が0％と伸び悩んでおり、新領域の需要開拓の遅れや、薄商いに戻った際の急激な流動性低下リスクには最大限の警戒が必要である。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=7743" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-7743/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="58" 
-           data-market-cap="128.5"
-           data-surge="2.73"
-           data-growth="0.0"
-           data-text="7686 ひとまいる 小売業 ラストワンマイル クイックコマース リテールDX">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">7686 ひとまいる</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 小売業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#ラストワンマイル</span>
-              
-                <span class="tag">#クイックコマース</span>
-              
-                <span class="tag">#リテールDX</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            58点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">440.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">128.5億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">2.73倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">435.0 / <span style="color: var(--accent-red);">402.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.1</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          店舗網を活かしたラストワンマイル配送網の再構築やクイックコマースとの連携深化がカタリスト。直近の売上停滞から新物流拠点の稼働や既存店DXによる採算性向上で業績が急回復すれば、低時価総額と出来高急増のモメンタムも手伝い、大幅な株価再評価（マルチプル・リレーティング）が期待される。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 人件費や物流コストの急騰による採算悪化や、売上高成長率のゼロ推移が長期化し、テーマ性の剥落に伴って出来高が急減・株価が失速するリスク。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=7686" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-7686/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6599" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6599/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
@@ -1949,7 +1155,7 @@
            data-market-cap="85.3"
            data-surge="1.23"
            data-growth="0.0"
-           data-text="156A マテリアルグループ サービス業 PR・マーケティング DX M&A">
+           data-text="156A マテリアルグループ サービス業 PR DX デジタルマーケティング M&amp;A">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -1961,11 +1167,11 @@
             </div>
             <div class="tags">
               
-                <span class="tag">#PR・マーケティング</span>
+                <span class="tag">#PR DX</span>
               
-                <span class="tag">#DX</span>
+                <span class="tag">#デジタルマーケティング</span>
               
-                <span class="tag">#M&A</span>
+                <span class="tag">#M&amp;A</span>
               
             </div>
           </div>
@@ -1994,7 +1200,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">880.0 / <span style="color: var(--accent-red);">814.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">885 / <span style="color: var(--accent-red);">820</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -2004,11 +1210,11 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          PR・マーケティング支援を展開し、顧客のDX推進や統合型マーケティング需要の拡大が追い風。足元の売上は横ばいも、M&Aによる事業領域拡大や高利益率なデジタルPRの伸びが業績再加速のカタリスト。時価総額80億円台の小型さを活かし、PR技術と既存顧客基盤のシナジー発揮で急成長シナリオを描く。
+          PR事業を中核にデジタルマーケティングやマーケティングDX領域へ拡大。顧客企業のブランド価値向上支援を通じ、ストック型収益の比率向上が期待される。直近売上成長は横ばいだが、M&amp;A戦略や新サービスの立ち上げによる業績再加速が確認できれば、小型株特有の浮動株の少なさから急反発の起爆剤となる。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上成長率の伸び悩みや、PR・広告業界における案件獲得競争の激化による粗利率低下リスク。出来高の盛り上がり不足による流動性リスク。</div>
+          <div><strong>警戒リスク:</strong> 直近売上高成長率の停滞に伴うモメンタム不足や、PR・マーケティング市場での競合激化、取引高が乏しいことによる流動性低下リスクが懸念される。</div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code=156A" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-156A/" target="_blank">📈 TradingView</a>
@@ -2017,11 +1223,11 @@
       </div>
       
       <div class="card" 
-           data-score="58" 
+           data-score="52" 
            data-market-cap="169.3"
            data-surge="0.96"
            data-growth="0.0"
-           data-text="6998 日本タングステン 電気機器 半導体製造装置 パワー半導体 新素材">
+           data-text="6998 日本タングステン 電気機器 半導体製造装置 高機能材料 EV">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -2035,15 +1241,15 @@
               
                 <span class="tag">#半導体製造装置</span>
               
-                <span class="tag">#パワー半導体</span>
+                <span class="tag">#高機能材料</span>
               
-                <span class="tag">#新素材</span>
+                <span class="tag">#EV</span>
               
             </div>
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            58点
+            52点
           </div>
         </div>
 
@@ -2066,79 +1272,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">3380.0 / <span style="color: var(--accent-red);">3120.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          半導体製造装置向け超硬・セラミックス部品の需要回復や、パワー半導体関連の新規部材採用が最大のカタリスト。足元の売上成長は横ばいだが、時価総額160億円台と小回りが利く規模であり、EV・半導体産業の設備投資再開による業績急浮上と高付加価値製品の比率拡大が中期的な株価暴騰を牽引する。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 半導体業界の設備投資再開遅延や、主原料であるタングステンの市況高騰に伴うコスト増が懸念点。また低流動性ゆえの株価ボラティリティの高さにも警戒が必要。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6998" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6998/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="58" 
-           data-market-cap="133.5"
-           data-surge="2.18"
-           data-growth="0.0"
-           data-text="6904 原田工業 電気機器 コネクテッドカー 自動車部材 5G">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">6904 原田工業</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 電気機器)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#コネクテッドカー</span>
-              
-                <span class="tag">#自動車部材</span>
-              
-                <span class="tag">#5G</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            58点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">631.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">133.5億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">2.18倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">625.0 / <span style="color: var(--accent-red);">578.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">3400.0 / <span style="color: var(--accent-red);">3145.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -2148,112 +1282,40 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          自動車用アンテナで世界屈指のシェアを誇り、コネクテッドカーや自動運転の普及に伴う高付加価値通信アンテナ需要の拡大が成長触媒。足元の出来高急増は底打ちを示唆。自動車生産の回復やEVシフトによる車載通信技術の高度化が業績急拡大をもたらし、株価の長期上昇トレンド形成を牽引する。
+          半導体の高集積化に伴う超硬・難削材加工用タングステン製品や次世代パワー半導体向け高機能素材の需要拡大が成長の鍵。精密加工部品の採用拡大と高付加価値化による粗利益率の上昇が業績再拡大のカタリストとなり、停滞する株価の大幅な見直しと評価切り上げを牽引する期待がある。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 自動車メーカーの減産リスクや原材料価格高騰による利益率圧迫、顧客の集中による業績変動リスク。</div>
+          <div><strong>警戒リスク:</strong> 主原料であるタングステンの市況高騰や調達リスクに加え、主要顧客である半導体・自動車市場の景気後退に伴う需要低迷が業績の下押し要因となる点。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6904" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6904/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="55" 
-           data-market-cap="137.0"
-           data-surge="1.62"
-           data-growth="0.0"
-           data-text="4346 ＮＥＸＹＺ．Ｇｒｏｕｐ その他金融業 脱炭素・GX 省エネ・環境 地方創生">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">4346 ＮＥＸＹＺ．Ｇｒｏｕｐ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / その他金融業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#脱炭素・GX</span>
-              
-                <span class="tag">#省エネ・環境</span>
-              
-                <span class="tag">#地方創生</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            55点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">1053.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">137.0億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.62倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">1020.0 / <span style="color: var(--accent-red);">945.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 2.8</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          LEDや業務用設備のサブスク事業を中心に、企業の脱炭素・GX投資需要を取り込む成長ストーリー。直近の売上成長率は横ばいなものの、省エネ機器導入による電気代削減提案は高光熱費時代において強固な商機。地域金融機関との提携拡大による地方創生・GXテーマに乗った再成長と出来高増加が株価の触媒となる。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 売上高成長率が0.0%と停滞しており、新規契約の伸び悩みが懸念材料。電力価格の変動や競合参入による利益率圧迫、サブスク解約リスクが株価の下押し要因となる。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=4346" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-4346/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6998" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6998/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
       
       <div class="card" 
            data-score="52" 
-           data-market-cap="125.0"
-           data-surge="0.5"
+           data-market-cap="164.5"
+           data-surge="0.89"
            data-growth="0.0"
-           data-text="3131 シンデン・ハイテックス 卸売業 半導体 車載エレクトロニクス 通信機器">
+           data-text="6176 ブランジスタ サービス業 タレントIP Webマーケティング 地方創生">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">3131 シンデン・ハイテックス</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 卸売業)</span>
+              <span class="stock-title">6176 ブランジスタ</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / サービス業)</span>
               
-                <span class="badge-stay">2週連続</span>
+                <span class="badge-new">今週初</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#半導体</span>
+                <span class="tag">#タレントIP</span>
               
-                <span class="tag">#車載エレクトロニクス</span>
+                <span class="tag">#Webマーケティング</span>
               
-                <span class="tag">#通信機器</span>
+                <span class="tag">#地方創生</span>
               
             </div>
           </div>
@@ -2266,11 +1328,11 @@
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">6630.0円</div>
+            <div class="stat-val">1137.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">125.0億円</div>
+            <div class="stat-val">164.5億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -2278,54 +1340,126 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">0.5倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">0.89倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">6400.0 / <span style="color: var(--accent-red);">5900.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">1100.0 / <span style="color: var(--accent-red);">1015.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          半導体や液晶デバイスの専門商社として、EV化や産業機器の高度化に伴う需要回復がカタリスト。現在は業績伸び悩みと出来高減少で揉み合いだが、次世代通信や車載向け高機能半導体の新規取扱拡大により成長再加速が期待され、極小の時価総額ゆえに買われ始めれば株価の急跳ねが狙える。
+          有名タレントを起用できるプロモーション支援ツール『アクセルジャパン』の契約企業数拡大や、電子雑誌を活用した地方創生プロジェクトが成長の軸。直近業績の伸び悩みからモメンタムは停滞気味だが、IP活用事業のストック収益化と新サービスの本格寄与による業績再拡大が株価急騰の起爆剤となる。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上成長率の停滞と出来高縮小に見られる資金関心の薄さ。特定の仕入先依存度が高く、世界的な半導体市況の落ち込みや円安一服に伴うマージン圧迫がリスク。</div>
+          <div><strong>警戒リスク:</strong> 直近売上成長率が横ばいとモメンタム不足。主力のプロモーション支援事業での競合激化や解約増加に伴う業績低迷、流動性低下リスクに警戒が必要。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3131" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3131/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6176" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6176/" target="_blank">📈 TradingView</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" 
+           data-score="52" 
+           data-market-cap="64.8"
+           data-surge="0.72"
+           data-growth="0.0"
+           data-text="3187 ミラタップ 小売業 住宅EC DX リフォーム">
+        <div class="card-header">
+          <div>
+            <div class="stock-title-wrap">
+              <span class="stock-title">3187 ミラタップ</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(グロース / 小売業)</span>
+              
+                <span class="badge-new">今週初</span>
+              
+            </div>
+            <div class="tags">
+              
+                <span class="tag">#住宅EC</span>
+              
+                <span class="tag">#DX</span>
+              
+                <span class="tag">#リフォーム</span>
+              
+            </div>
+          </div>
+          <div class="score-badge">
+            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
+            52点
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">現在株価</div>
+            <div class="stat-val">373.0円</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">時価総額</div>
+            <div class="stat-val">64.8億円</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">直近売上高YoY</div>
+            <div class="stat-val" style="color: inherit">+0.0%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">出来高急増度</div>
+            <div class="stat-val" style="color: var(--accent-blue);">0.72倍</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">買い目安 / 損切り</div>
+            <div class="stat-val" style="font-size: 0.9rem;">365.0 / <span style="color: var(--accent-red);">338.0</span></div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">リスクリワード比</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.15</div>
+          </div>
+        </div>
+
+        <div class="catalyst-box">
+          <strong>【成長ストーリー＆カタリスト】</strong><br>
+          デザイン建築資材のD2Cモデルに強みを持つ。建設業界の人手不足や資材調達の効率化需要を背景に、ECプラットフォームの利用拡大が期待される。住宅着工の底打ちやリフォーム市場の拡大、海外展開の本格化が中期的な業績成長と株価の再評価に向けた強力なカタリストとなる。
+        </div>
+
+        <div class="plan-box">
+          <div><strong>警戒リスク:</strong> 住宅着工件数の減少に伴う需要低迷や資材高騰による利益率悪化に加え、直近の売上成長停滞と出来高減少による流動性リスクが警戒される。</div>
+          <div class="action-links">
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=3187" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-3187/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
       
       <div class="card" 
            data-score="48" 
-           data-market-cap="260.3"
-           data-surge="1.4"
+           data-market-cap="146.6"
+           data-surge="1.87"
            data-growth="0.0"
-           data-text="367A プリモグローバルホールディングス 小売業 インバウンド アジア展開 高級消費">
+           data-text="4627 ナトコ 化学 高機能塗料 電子材料 ファインケミカル">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
-              <span class="stock-title">367A プリモグローバルホールディングス</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 小売業)</span>
+              <span class="stock-title">4627 ナトコ</span>
+              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 化学)</span>
               
                 <span class="badge-stay">2週連続</span>
               
             </div>
             <div class="tags">
               
-                <span class="tag">#インバウンド</span>
+                <span class="tag">#高機能塗料</span>
               
-                <span class="tag">#アジア展開</span>
+                <span class="tag">#電子材料</span>
               
-                <span class="tag">#高級消費</span>
+                <span class="tag">#ファインケミカル</span>
               
             </div>
           </div>
@@ -2338,11 +1472,11 @@
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-label">現在株価</div>
-            <div class="stat-val">2976.0円</div>
+            <div class="stat-val">1940.0円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">時価総額</div>
-            <div class="stat-val">260.3億円</div>
+            <div class="stat-val">146.6億円</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">直近売上高YoY</div>
@@ -2350,110 +1484,38 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.4倍</div>
+            <div class="stat-val" style="color: var(--accent-blue);">1.87倍</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">2900.0 / <span style="color: var(--accent-red);">2680.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">1910.0 / <span style="color: var(--accent-red);">1760.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
+            <div class="stat-val" style="color: var(--accent-green);">1 : 3.3</div>
           </div>
         </div>
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          アジア市場での店舗網再拡大と高単価商品の好調、インバウンド需要の回復が成長の再加速を牽引。ブライダルジュエリー市場での独自のブランドポジションを強みに、海外収益比率の拡大が株価再評価のカタリストとなる。業績回復に伴うマルチプルの切り上がりが期待される。
+          塗料技術を応用した電子材料・高機能性樹脂分野へのシフトが起爆剤。特に先端ディスプレイや半導体関連向け高付加価値塗料の需要拡大が利益率向上を牽引。株価指標面の割安感と出来高増加を背景に、事業ポートフォリオ再編による再評価が進めば中長期的な株価の上昇トレンド形成が期待される。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 国内の少子化拡大に伴うブライダル需要縮小に加え、主要な成長領域である中国・アジア市場の景気減速や現地消費停滞による業績下振れリスク。</div>
+          <div><strong>警戒リスク:</strong> 原材料価格の高騰による粗利益率の悪化や、主力である建材・自動車向け塗料需要の低迷による業績伸び悩みリスク。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=367A" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-367A/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=4627" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-4627/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
       
       <div class="card" 
-           data-score="45" 
-           data-market-cap="50.0"
-           data-surge="1.52"
-           data-growth="0.0"
-           data-text="548A システムエグゼ 情報・通信業 DX クラウド IT人材">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">548A システムエグゼ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#DX</span>
-              
-                <span class="tag">#クラウド</span>
-              
-                <span class="tag">#IT人材</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            45点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">956.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">50.0億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.52倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">920.0 / <span style="color: var(--accent-red);">850.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.2</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          時価総額50億円と小型で上値余地はあるものの、直近売上成長の伸び悩みが課題。クラウド移行需要や独自のDXソリューション展開、エンジニア稼働率向上による利益率改善が株価浮揚のカタリスト。高粗利案件へのシフトにより業績モメンタムが再加速すれば、指標面の割安感から見直し買いが期待される。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 直近売上高成長率が0.0%と停滞しており、IT投資減速や人件費増に伴う採算悪化により業績低迷が長期化するリスクに厳重な警戒が必要。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=548A" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-548A/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="45" 
+           data-score="42" 
            data-market-cap="100.4"
            data-surge="3.16"
            data-growth="0.0"
-           data-text="7192 日本モーゲージサービス その他金融業 住宅金融 省エネ住宅 金利上昇">
+           data-text="7192 日本モーゲージサービス その他金融業 住宅金融 金利上昇 DX">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -2467,15 +1529,15 @@
               
                 <span class="tag">#住宅金融</span>
               
-                <span class="tag">#省エネ住宅</span>
-              
                 <span class="tag">#金利上昇</span>
+              
+                <span class="tag">#DX</span>
               
             </div>
           </div>
           <div class="score-badge">
             <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            45点
+            42点
           </div>
         </div>
 
@@ -2508,230 +1570,14 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          売上成長は足元横ばいだが出来高急増で市場の関心が集まる。省エネ住宅向けローンや住宅DX支援サービスの拡充が再成長の起爆剤。金利環境の変化に伴う金融ソリューション需要の取り込みと、提携工務店ネットワークの活用により業績モメンタムが再加速し、株価の本格反転が期待される。
+          金利動向に伴う住宅需要の変化に対し、住宅ローン保証や住宅関連事業者向けプラットフォーム事業の多角化が起爆剤。直近の出来高急増は買い集めの兆候を示し、金利上昇に強いビジネスモデルへの変革や業績の再成長転換により、株価の上昇モメンタム形成が期待される。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 売上成長の停滞（直近+0.0%）に加え、国内金利上昇に伴う住宅需要の冷え込みや新築着工件数減少、競合激化による利益率悪化が最大の警戒リスク要因。</div>
+          <div><strong>警戒リスク:</strong> 金利上昇に伴う住宅ローン需要の急減や、直近売上高成長率の伸び悩みによる業績停滞リスク。</div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code=7192" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-7192/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="42" 
-           data-market-cap="254.5"
-           data-surge="1.25"
-           data-growth="0.0"
-           data-text="6570 共和コーポレーション サービス業 インバウンド コト消費 地方創生">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">6570 共和コーポレーション</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / サービス業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#インバウンド</span>
-              
-                <span class="tag">#コト消費</span>
-              
-                <span class="tag">#地方創生</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            42点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">4255.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">254.5億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.25倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">4150.0 / <span style="color: var(--accent-red);">3830.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          アミューズメント施設運営の老舗で、インバウンド需要の回復や新規店舗開拓が成長の鍵。直近の売上成長率は横ばいだが、既存店売上高の改善や高粗利なプライズゲームの拡充による利益率向上が株価再評価のカタリストとなる。地方中心の安定的な店舗展開と新規大型店出店による再成長軌道への復帰に期待。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 売上高成長率の伸び悩みによる成長ストーリーの失速懸念。個人消費の減速や光熱費・人件費などの店舗運営コスト高騰による利益率低下リスクに注意が必要。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=6570" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-6570/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="38" 
-           data-market-cap="118.0"
-           data-surge="1.71"
-           data-growth="0.0"
-           data-text="2764 ひらまつ 小売業 インバウンド 高級消費 富裕層向けサービス">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">2764 ひらまつ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 小売業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#インバウンド</span>
-              
-                <span class="tag">#高級消費</span>
-              
-                <span class="tag">#富裕層向けサービス</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            38点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">167.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">118.0億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.71倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">162.0 / <span style="color: var(--accent-red);">150.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 2.5</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          インバウンド需要の回復と富裕層向け高級ホテル・レストラン事業の好調が再成長の鍵。不採算店舗の整理による採算性向上や、単価アップ戦略が浸透すれば営業利益の大幅改善が期待される。株価低位からの業績V字回復が実現すれば、株価の見直し買いを集めるカタリストとなり得る。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 売上高成長率の伸び悩みや高コスト構造による業績低迷のリスク。インバウンド需要の減速や個人消費の落ち込みが直撃し、黒字化定着が遅れる可能性。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=2764" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-2764/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="35" 
-           data-market-cap="179.3"
-           data-surge="1.27"
-           data-growth="0.0"
-           data-text="2484 出前館 情報・通信業 フードデリバリー DX クイックコマース">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">2484 出前館</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 情報・通信業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#フードデリバリー</span>
-              
-                <span class="tag">#DX</span>
-              
-                <span class="tag">#クイックコマース</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            35点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">161.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">179.3億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.27倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">155.0 / <span style="color: var(--accent-red);">143.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 2.5</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          LINEヤフーグループとの連携深化による顧客基盤の活用や、配達効率化推進による黒字化への転換が最大のカタリスト。デリバリー領域を超えたクイックコマース市場の拡大や、店舗向けDX支援機能の拡充が奏功すれば、停滞する業績モメンタムが一気に再加速し株価の底打ち反転が期待される。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 競合他社との過酷なシェア争いによる顧客離脱、配送コスト高騰に伴う営業黒字化計画の遅延、および売上高成長の停滞に伴う投資資金流出が警戒リスク要因。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=2484" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-2484/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
@@ -2741,7 +1587,7 @@
            data-market-cap="139.5"
            data-surge="1.0"
            data-growth="0.0"
-           data-text="8562 福島銀行 銀行業 地銀再編 金利上昇 DX">
+           data-text="8562 福島銀行 銀行業 地銀再編 SBI連携 金利上昇">
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
@@ -2755,9 +1601,9 @@
               
                 <span class="tag">#地銀再編</span>
               
-                <span class="tag">#金利上昇</span>
+                <span class="tag">#SBI連携</span>
               
-                <span class="tag">#DX</span>
+                <span class="tag">#金利上昇</span>
               
             </div>
           </div>
@@ -2786,151 +1632,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">395.0 / <span style="color: var(--accent-red);">365.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          SBIホールディングスとの資本業務提携によるDX推進や業務効率化に加え、日銀のマイナス金利解除に伴う金利上昇が利ざや改善を後押し。時価総額100億円台の超小型地銀であり、業績のV字回復や地銀再編の波に乗ることで、低PBRからの著しい見直し買いが期待されるシナリオが株価の強力なカタリストとなる。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 地方の人口減少に伴う本業の需要縮小や与信費用の増加リスク。また、金利急升に伴う保有国債等の有価証券含み損拡大が足元の財務を圧迫する懸念がある。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=8562" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-8562/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="25" 
-           data-market-cap="169.2"
-           data-surge="1.08"
-           data-growth="0.0"
-           data-text="8918 ランド 不動産業 超低位株 不動産流動化 マネーゲーム">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">8918 ランド</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 不動産業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#超低位株</span>
-              
-                <span class="tag">#不動産流動化</span>
-              
-                <span class="tag">#マネーゲーム</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            25点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">11.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">169.2億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.08倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">11.0 / <span style="color: var(--accent-red);">10.2</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          11円という超低位株水準に位置し、わずかな好材料や不動産流動化事業での大型案件獲得発表が強力な株価起爆カタリストとなります。業績の急回復や仕手的なマネーゲーム化による資金流入が起きた場合、低時価総額を生かした爆発的な高騰シナリオが描かれ、短期での倍増狙いが可能となります。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 売上成長率が0%と業績モメンタムは皆無であり、長期膠着による塩漬けリスクが高いです。さらに新株予約権行使等による希薄化懸念も大きな重石となります。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=8918" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-8918/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="25" 
-           data-market-cap="166.1"
-           data-surge="1.55"
-           data-growth="0.0"
-           data-text="7161 じもとホールディングス 銀行業 地銀再編 金利上昇 事業再生">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">7161 じもとホールディングス</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 銀行業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#地銀再編</span>
-              
-                <span class="tag">#金利上昇</span>
-              
-                <span class="tag">#事業再生</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            25点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">622.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">166.1億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">1.55倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">610.0 / <span style="color: var(--accent-red);">565.0</span></div>
+            <div class="stat-val" style="font-size: 0.9rem;">395.0 / <span style="color: var(--accent-red);">367.0</span></div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
@@ -2940,86 +1642,14 @@
 
         <div class="catalyst-box">
           <strong>【成長ストーリー＆カタリスト】</strong><br>
-          日銀のマイナス金利解除に伴う利ざや改善効果に加え、地銀再編や公的資金返済に向けた抜本的な事業再生がカタリスト。時価総額160億円規模と地銀の中では小型であり、地域経済活性化や経営効率化による収益性の急改善が実現すれば、割安修正と業績急拡大のダブルで株価の再評価が進む可能性がある。
+          SBIホールディングスとの資本業務提携による店舗・システムの共同化やDX推進、さらに国内金利上昇に伴う利ざや改善が収益押し上げの主要因となる。地銀再編に伴うM&amp;Aや地域金融構想の進展が株価再評価のカタリストであり、低PBR修正に向けた事業構造改革の加速が期待される。
         </div>
 
         <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 与信費用の増加や公的資金返済の遅延リスクに加え、地方経済の縮小に伴う貸出金の低迷や貸倒リスクの高まりが懸念され、成長力・収益性の低迷が長期化するリスクがある。</div>
+          <div><strong>警戒リスク:</strong> 地方の人口減少による貸出需要の低迷や、日銀の政策変更に伴う保有有価証券の評価損拡大リスクに加え、業績低空飛行の長期化が懸念材料。</div>
           <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=7161" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-7161/" target="_blank">📈 TradingView</a>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card" 
-           data-score="25" 
-           data-market-cap="95.0"
-           data-surge="0.83"
-           data-growth="0.0"
-           data-text="2735 ワッツ 小売業 100円ショップ 生活防衛 ECシフト">
-        <div class="card-header">
-          <div>
-            <div class="stock-title-wrap">
-              <span class="stock-title">2735 ワッツ</span>
-              <span style="font-size: 0.85rem; color: var(--text-sub);">(スタンダード / 小売業)</span>
-              
-                <span class="badge-stay">2週連続</span>
-              
-            </div>
-            <div class="tags">
-              
-                <span class="tag">#100円ショップ</span>
-              
-                <span class="tag">#生活防衛</span>
-              
-                <span class="tag">#ECシフト</span>
-              
-            </div>
-          </div>
-          <div class="score-badge">
-            <div style="font-size: 0.75rem; color: var(--text-sub); font-weight: normal;">潜在スコア</div>
-            25点
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">現在株価</div>
-            <div class="stat-val">716.0円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">時価総額</div>
-            <div class="stat-val">95.0億円</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">直近売上高YoY</div>
-            <div class="stat-val" style="color: inherit">+0.0%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">出来高急増度</div>
-            <div class="stat-val" style="color: var(--accent-blue);">0.83倍</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">買い目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.9rem;">700.0 / <span style="color: var(--accent-red);">648.0</span></div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">リスクリワード比</div>
-            <div class="stat-val" style="color: var(--accent-green);">1 : 3.0</div>
-          </div>
-        </div>
-
-        <div class="catalyst-box">
-          <strong>【成長ストーリー＆カタリスト】</strong><br>
-          100円ショップ大手として店舗網を維持しつつ、EC事業の強化や高価格帯商品の拡充による客単価上昇が成長の鍵。物価高に伴う消費者の生活防衛意識の高まりを追い風に、不採算店舗の整理と直営店化による収益構造改革が進めば、低評価からの見直し買いと業績回復による株価の上昇が期待される。
-        </div>
-
-        <div class="plan-box">
-          <div><strong>警戒リスク:</strong> 急速な円安の進行や原材料高に伴う仕入コスト高騰による粗利益率の圧迫、およびセリアやダイソーなど業界大手との熾烈な出店・価格競争による業績伸び悩みリスク。</div>
-          <div class="action-links">
-            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=2735" target="_blank">📊 株探チャート</a>
-            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-2735/" target="_blank">📈 TradingView</a>
+            <a class="btn-link" href="https://kabutan.jp/stock/chart?code=8562" target="_blank">📊 株探チャート</a>
+            <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-8562/" target="_blank">📈 TradingView</a>
           </div>
         </div>
       </div>
