@@ -135,6 +135,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       gap: 0.4rem;
     }
 
+    /* 3段階利確ボックス (TP1 / TP2 / TP3) */
+    .tp-box {
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      margin-top: 0.6rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.5rem;
+    }
+    .tp-item { display: flex; flex-direction: column; gap: 2px; }
+    .tp-label { font-size: 0.72rem; color: var(--text-sub); }
+    .tp-val { font-size: 0.88rem; font-weight: bold; color: var(--accent-green); }
+
     /* コントロールバー */
     .controls {
       display: flex;
@@ -142,10 +158,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       gap: 0.75rem;
       margin-bottom: 1.5rem;
       align-items: center;
+      justify-content: space-between;
       background: rgba(255,255,255,0.03);
       padding: 0.75rem;
       border-radius: 8px;
       border: 1px solid var(--border);
+    }
+    .controls-left, .controls-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
     }
     .controls input, .controls select {
       background: var(--card-bg);
@@ -175,6 +198,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .stock-title-wrap { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .stock-title { font-size: 1.25rem; font-weight: bold; }
     
+    /* お気に入りスターボタン */
+    .star-btn {
+      background: none;
+      border: none;
+      font-size: 1.15rem;
+      color: #64748b;
+      cursor: pointer;
+      padding: 0 3px;
+      vertical-align: middle;
+      transition: color 0.15s;
+    }
+    .star-btn:hover { color: #facc15; }
+    .star-active { color: #facc15 !important; }
+
     /* 確信度バッジ */
     .tier-badge { font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; }
     .tier-badge-s { background: linear-gradient(135deg, #7e22ce, #eab308); color: #ffffff; border: 1px solid #facc15; }
@@ -288,6 +325,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
+      transition: all 0.15s;
     }
     .btn-link:hover { color: #fff; background: rgba(255,255,255,0.12); border-color: var(--accent-blue); }
     
@@ -358,6 +396,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     }
     .track-table th { color: var(--text-sub); font-weight: 500; background: rgba(0,0,0,0.2); }
     .badge-win { color: var(--accent-green); font-weight: bold; }
+
+    /* トースト通知ポップアップ */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid var(--accent-green);
+      padding: 0.75rem 1.2rem;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      font-size: 0.85rem;
+      font-weight: bold;
+      display: none;
+      z-index: 9999;
+      animation: toastIn 0.3s ease;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -489,26 +549,35 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- 🛠️ コントロール ＆ 証券口座連携ツールバー -->
     <div class="controls">
-      <div>
-        <label style="font-size: 0.85rem; color: var(--text-sub);">並び替え:</label>
-        <select id="sortSelect" onchange="sortCards()">
-          <option value="score">AIスコア順</option>
-          <option value="conviction">確信度順 (S > A > B)</option>
-          <option value="rs">RS（市場相対力）順</option>
-          <option value="market_cap">時価総額が小さい順</option>
-          <option value="surge">出来高急増率順</option>
-          <option value="growth">売上成長率順</option>
-        </select>
+      <div class="controls-left">
+        <div>
+          <label style="font-size: 0.82rem; color: var(--text-sub);">並び替え:</label>
+          <select id="sortSelect" onchange="sortCards()">
+            <option value="score">AIスコア順</option>
+            <option value="conviction">確信度順 (S > A > B)</option>
+            <option value="rs">RS（市場相対力）順</option>
+            <option value="market_cap">時価総額が小さい順</option>
+            <option value="surge">出来高急増率順</option>
+            <option value="growth">売上成長率順</option>
+          </select>
+        </div>
+        <div>
+          <input type="text" id="filterInput" onkeyup="filterCards()" placeholder="銘柄名・コード・テーマ検索...">
+        </div>
       </div>
-      <div>
-        <input type="text" id="filterInput" onkeyup="filterCards()" placeholder="銘柄名・コード・テーマ検索...">
+      <div class="controls-right">
+        <button type="button" class="btn-link" onclick="copyStockCodes()" title="SBI証券/楽天証券/TradingViewへ一括インポート可能">📋 コード一括コピー</button>
+        <button type="button" class="btn-link" onclick="exportCsv()">📥 CSVエクスポート</button>
+        <button type="button" class="btn-link" id="starFilterBtn" onclick="toggleStarFilter()">⭐ お気に入りのみ</button>
       </div>
     </div>
 
     <div id="cardsContainer">
       {% for stock in analyzed_stocks %}
       <div class="card" 
+           data-code="{{ stock.code }}"
            data-score="{{ stock.analysis.score }}" 
            data-conviction="{{ stock.analysis.conviction_tier }}"
            data-rs="{{ stock.rs_rating or 0 }}"
@@ -520,6 +589,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="card-header">
           <div>
             <div class="stock-title-wrap">
+              <button type="button" class="star-btn" id="star-{{ stock.code }}" onclick="toggleStar('{{ stock.code }}')" title="お気に入り登録">☆</button>
               <span class="stock-title">{{ stock.code }} {{ stock.name }}</span>
               <span style="font-size: 0.85rem; color: var(--text-sub);">({{ stock.market }} / {{ stock.sector }})</span>
               
@@ -626,11 +696,29 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
           <div class="stat-item">
             <div class="stat-label">買値目安 / 損切り</div>
-            <div class="stat-val" style="font-size: 0.85rem;">{{ stock.analysis.entry_price }} / <span style="color: var(--accent-red);">{{ stock.analysis.stop_loss }}</span></div>
+            <div class="stat-val" style="font-size: 0.85rem;">
+              {{ stock.analysis.entry_price }} <span class="pill pill-moat" style="font-size: 0.68rem; padding: 1px 4px;">{{ stock.analysis.order_type or '押し目・ブレイク' }}</span> / <span style="color: var(--accent-red);">{{ stock.analysis.stop_loss }}</span>
+            </div>
           </div>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
             <div class="stat-val" style="color: var(--accent-green);">1 : {{ stock.analysis.risk_reward_ratio }}</div>
+          </div>
+        </div>
+
+        <!-- 3段階利確戦略ボックス (TP1 / TP2 / TP3) -->
+        <div class="tp-box">
+          <div class="tp-item">
+            <span class="tp-label">🎯 TP1 (+20% 原資回収/1株利確):</span>
+            <span class="tp-val">{{ stock.analysis.take_profit_tp1 or (stock.close * 1.2)|round(0)|int }}円</span>
+          </div>
+          <div class="tp-item">
+            <span class="tp-label">🚀 TP2 (+50% 追撃利確):</span>
+            <span class="tp-val" style="color: var(--accent-gold);">{{ stock.analysis.take_profit_tp2 or (stock.close * 1.5)|round(0)|int }}円</span>
+          </div>
+          <div class="tp-item">
+            <span class="tp-label">💎 TP3 (テンバガー追従戦略):</span>
+            <span class="tp-val" style="color: #c084fc; font-size: 0.78rem; font-weight: normal;">{{ stock.analysis.take_profit_tp3 or '25MA割れまでトレイリングストップ追従' }}</span>
           </div>
         </div>
 
@@ -667,9 +755,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
           <div class="action-links">
             <button type="button" class="btn-link tv-toggle-btn" id="tv-btn-{{ stock.code }}" onclick="toggleTvChart('{{ stock.code }}')">📈 チャート展開</button>
+            <button type="button" class="btn-link" onclick="toggleMemo('{{ stock.code }}')">📝 メモ</button>
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code={{ stock.code }}" target="_blank">📊 株探チャート</a>
             <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-{{ stock.code }}/" target="_blank">↗ TradingView</a>
           </div>
+        </div>
+
+        <!-- 📝 トレード備忘メモ (LocalStorage保存) -->
+        <div id="memo-wrap-{{ stock.code }}" class="memo-wrap" style="display: none; margin-top: 0.75rem; background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="font-size: 0.78rem; color: var(--text-sub); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>📝 個人トレード備忘メモ (約定価格・購入理由・利確予定など):</span>
+            <span id="memo-status-{{ stock.code }}" style="color: var(--accent-green); font-size: 0.72rem;"></span>
+          </div>
+          <textarea id="memo-text-{{ stock.code }}" style="width: 100%; height: 55px; background: var(--bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 6px; font-size: 0.82rem; resize: vertical; box-sizing: border-box;" placeholder="例: 2026/09/08 4050円で100株打診買い。TP1到達で半値利確予定。" oninput="saveMemo('{{ stock.code }}')"></textarea>
         </div>
 
         <!-- TradingView インラインチャート領域 -->
@@ -681,6 +779,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- トースト通知コンテナ -->
+  <div id="toast" class="toast"></div>
+
   <!-- 過去履歴 JSON 埋め込み (SPA即時切り替え用) -->
   <script id="historyData" type="application/json">
 {{ all_history_json | safe }}
@@ -688,6 +789,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   <script>
     const activeTvWidgets = {};
+    let starFilterActive = false;
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 3200);
+    }
 
     function toggleTvChart(code) {
       const wrap = document.getElementById(`tv-container-wrap-${code}`);
@@ -753,6 +863,188 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       });
     }
 
+    function copyStockCodes() {
+      const cards = Array.from(document.querySelectorAll("#cardsContainer .card"))
+        .filter(c => c.style.display !== "none");
+      const codes = cards.map(c => c.dataset.code).filter(Boolean);
+
+      if (codes.length === 0) {
+        showToast("コピー対象の銘柄が表示されていません。");
+        return;
+      }
+
+      const text = codes.join(", ");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(`📋 ${codes.length}件の銘柄コードをコピーしました！ (SBI/楽天/TVへ貼付可)`);
+        }).catch(() => fallbackCopy(text, codes.length));
+      } else {
+        fallbackCopy(text, codes.length);
+      }
+    }
+
+    function fallbackCopy(text, count) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast(`📋 ${count}件の銘柄コードをコピーしました！`);
+    }
+
+    function exportCsv() {
+      const cards = Array.from(document.querySelectorAll("#cardsContainer .card"));
+      if (cards.length === 0) {
+        showToast("エクスポート対象のデータがありません。");
+        return;
+      }
+
+      let csv = "\uFEFFコード,銘柄名,市場,業種,確信度,スコア,現在株価,買値目安,注文種別,損切りライン,TP1利確(+20%),TP2利確(+50%),TP3戦略,リスクリワード,売上成長率,時価総額(億)\n";
+
+      cards.forEach(c => {
+        const code = c.dataset.code || "";
+        const titleEl = c.querySelector(".stock-title");
+        const name = titleEl ? titleEl.textContent.replace(code, "").trim() : "";
+        const subInfo = (c.querySelector(".stock-title-wrap span:nth-of-type(2)")?.textContent || "").replace(/[()]/g, "");
+        const [market, sector] = subInfo.split("/").map(s => s.trim());
+        const conviction = c.dataset.conviction || "";
+        const score = c.dataset.score || "";
+        const growth = c.dataset.growth || "";
+        const mcap = c.dataset.marketCap || "";
+
+        const statVals = Array.from(c.querySelectorAll(".stat-val")).map(el => el.textContent.trim());
+        const price = (statVals[0] || "").replace("円", "");
+        const entryText = statVals[6] || "";
+        const entry = entryText.split("/")[0]?.trim() || "";
+        const stop = (entryText.split("/")[1]?.trim() || "").replace("円", "");
+        const rr = statVals[7] || "";
+        const orderType = (c.querySelector(".stat-item:nth-child(7) .pill")?.textContent || "").trim();
+
+        const tpVals = Array.from(c.querySelectorAll(".tp-val")).map(el => el.textContent.trim());
+        const tp1 = (tpVals[0] || "").replace("円", "");
+        const tp2 = (tpVals[1] || "").replace("円", "");
+        const tp3 = tpVals[2] || "";
+
+        const row = [
+          `"${code}"`,
+          `"${name}"`,
+          `"${market || ''}"`,
+          `"${sector || ''}"`,
+          `"${conviction}"`,
+          `"${score}"`,
+          `"${price}"`,
+          `"${entry}"`,
+          `"${orderType}"`,
+          `"${stop}"`,
+          `"${tp1}"`,
+          `"${tp2}"`,
+          `"${tp3}"`,
+          `"${rr}"`,
+          `"${growth}%"`,
+          `"${mcap}"`
+        ];
+        csv += row.join(",") + "\n";
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tenbagger_hunter_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast("📥 スクリーニングCSVを出力しました！");
+    }
+
+    /* LocalStorage お気に入り管理 */
+    function getStarredCodes() {
+      try {
+        return JSON.parse(localStorage.getItem("tb_starred_codes") || "[]");
+      } catch(e) { return []; }
+    }
+
+    function saveStarredCodes(codes) {
+      localStorage.setItem("tb_starred_codes", JSON.stringify(codes));
+      updateStarUI();
+    }
+
+    function toggleStar(code) {
+      let starred = getStarredCodes();
+      if (starred.includes(code)) {
+        starred = starred.filter(c => c !== code);
+      } else {
+        starred.push(code);
+      }
+      saveStarredCodes(starred);
+      if (starFilterActive) filterCards();
+    }
+
+    function updateStarUI() {
+      const starred = getStarredCodes();
+      const btn = document.getElementById("starFilterBtn");
+      if (btn) btn.textContent = `⭐ お気に入り (${starred.length}件)`;
+
+      document.querySelectorAll(".card").forEach(c => {
+        const code = c.dataset.code;
+        const starBtn = document.getElementById(`star-${code}`);
+        if (starBtn) {
+          if (starred.includes(code)) {
+            starBtn.textContent = "★";
+            starBtn.classList.add("star-active");
+          } else {
+            starBtn.textContent = "☆";
+            starBtn.classList.remove("star-active");
+          }
+        }
+      });
+    }
+
+    function toggleStarFilter() {
+      starFilterActive = !starFilterActive;
+      const btn = document.getElementById("starFilterBtn");
+      if (btn) {
+        btn.style.borderColor = starFilterActive ? "var(--accent-gold)" : "var(--border)";
+        btn.style.color = starFilterActive ? "var(--accent-gold)" : "#94a3b8";
+        btn.style.background = starFilterActive ? "rgba(245, 158, 11, 0.15)" : "rgba(255,255,255,0.06)";
+      }
+      filterCards();
+    }
+
+    /* LocalStorage メモ管理 */
+    function toggleMemo(code) {
+      const wrap = document.getElementById(`memo-wrap-${code}`);
+      if (!wrap) return;
+      const isHidden = wrap.style.display === "none" || !wrap.style.display;
+      wrap.style.display = isHidden ? "block" : "none";
+      if (isHidden) {
+        const ta = document.getElementById(`memo-text-${code}`);
+        if (ta) ta.value = localStorage.getItem(`tb_memo_${code}`) || "";
+      }
+    }
+
+    function saveMemo(code) {
+      const ta = document.getElementById(`memo-text-${code}`);
+      const status = document.getElementById(`memo-status-${code}`);
+      if (!ta) return;
+      localStorage.setItem(`tb_memo_${code}`, ta.value);
+      if (status) {
+        status.textContent = "保存済 ✓";
+        setTimeout(() => { status.textContent = ""; }, 1800);
+      }
+    }
+
+    function loadAllMemos() {
+      document.querySelectorAll(".card").forEach(c => {
+        const code = c.dataset.code;
+        const memoVal = localStorage.getItem(`tb_memo_${code}`);
+        const ta = document.getElementById(`memo-text-${code}`);
+        if (ta && memoVal) ta.value = memoVal;
+      });
+    }
+
     function sortCards() {
       const criteria = document.getElementById("sortSelect").value;
       const container = document.getElementById("cardsContainer");
@@ -775,10 +1067,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     function filterCards() {
       const q = document.getElementById("filterInput").value.toLowerCase();
+      const starred = getStarredCodes();
       const cards = document.getElementsByClassName("card");
       for (let card of cards) {
+        const code = card.dataset.code;
         const text = card.dataset.text.toLowerCase();
-        card.style.display = text.includes(q) ? "block" : "none";
+        const matchesQuery = text.includes(q);
+        const matchesStar = !starFilterActive || starred.includes(code);
+        card.style.display = (matchesQuery && matchesStar) ? "block" : "none";
       }
     }
 
@@ -789,6 +1085,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const entry = a.entry_price || stock.entry_price || stock.close || stock.recommend_price || 0;
       const stop = a.stop_loss || stock.stop_loss || Math.round(entry * 0.92);
       const rr = a.risk_reward_ratio || stock.risk_reward_ratio || 3.0;
+      const orderType = a.order_type || stock.order_type || "押し目・ブレイク";
+      const tp1 = a.take_profit_tp1 || stock.take_profit_tp1 || Math.round(entry * 1.2);
+      const tp2 = a.take_profit_tp2 || stock.take_profit_tp2 || Math.round(entry * 1.5);
+      const tp3 = a.take_profit_tp3 || stock.take_profit_tp3 || "25MA割れまでトレイリングストップ追従";
       const tags = a.theme_tags || stock.theme_tags || [stock.sector || "新興"];
       const moat = a.moat_rating || stock.moat_rating || "MEDIUM";
       const tam = a.tam_scale || stock.tam_scale || (stock.sector + "市場");
@@ -833,6 +1133,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
       return `
         <div class="card" 
+             data-code="${stock.code}"
              data-score="${score}" 
              data-conviction="${conviction}"
              data-rs="${rs}"
@@ -844,6 +1145,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <div class="card-header">
             <div>
               <div class="stock-title-wrap">
+                <button type="button" class="star-btn" id="star-${stock.code}" onclick="toggleStar('${stock.code}')" title="お気に入り登録">☆</button>
                 <span class="stock-title">${stock.code} ${stock.name}</span>
                 <span style="font-size: 0.85rem; color: var(--text-sub);">(${stock.market || ''} / ${stock.sector || ''})</span>
                 ${tierBadge}
@@ -886,11 +1188,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
             <div class="stat-item">
               <div class="stat-label">買値目安 / 損切り</div>
-              <div class="stat-val" style="font-size: 0.85rem;">${entry} / <span style="color: var(--accent-red);">${stop}</span></div>
+              <div class="stat-val" style="font-size: 0.85rem;">
+                ${entry} <span class="pill pill-moat" style="font-size: 0.68rem; padding: 1px 4px;">${orderType}</span> / <span style="color: var(--accent-red);">${stop}</span>
+              </div>
             </div>
             <div class="stat-item">
               <div class="stat-label">リスクリワード比</div>
               <div class="stat-val" style="color: var(--accent-green);">1 : ${rr}</div>
+            </div>
+          </div>
+
+          <div class="tp-box">
+            <div class="tp-item">
+              <span class="tp-label">🎯 TP1 (+20% 原資回収/1株利確):</span>
+              <span class="tp-val">${tp1}円</span>
+            </div>
+            <div class="tp-item">
+              <span class="tp-label">🚀 TP2 (+50% 追撃利確):</span>
+              <span class="tp-val" style="color: var(--accent-gold);">${tp2}円</span>
+            </div>
+            <div class="tp-item">
+              <span class="tp-label">💎 TP3 (テンバガー追従戦略):</span>
+              <span class="tp-val" style="color: #c084fc; font-size: 0.78rem; font-weight: normal;">${tp3}</span>
             </div>
           </div>
 
@@ -923,9 +1242,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
             <div class="action-links">
               <button type="button" class="btn-link tv-toggle-btn" id="tv-btn-${stock.code}" onclick="toggleTvChart('${stock.code}')">📈 チャート展開</button>
+              <button type="button" class="btn-link" onclick="toggleMemo('${stock.code}')">📝 メモ</button>
               <a class="btn-link" href="https://kabutan.jp/stock/chart?code=${stock.code}" target="_blank">📊 株探チャート</a>
               <a class="btn-link" href="https://jp.tradingview.com/symbols/TSE-${stock.code}/" target="_blank">↗ TradingView</a>
             </div>
+          </div>
+
+          <div id="memo-wrap-${stock.code}" class="memo-wrap" style="display: none; margin-top: 0.75rem; background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="font-size: 0.78rem; color: var(--text-sub); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+              <span>📝 個人トレード備忘メモ (約定価格・購入理由・利確予定など):</span>
+              <span id="memo-status-${stock.code}" style="color: var(--accent-green); font-size: 0.72rem;"></span>
+            </div>
+            <textarea id="memo-text-${stock.code}" style="width: 100%; height: 55px; background: var(--bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 6px; font-size: 0.82rem; resize: vertical; box-sizing: border-box;" placeholder="例: 2026/09/08 4050円で100株打診買い。TP1到達で半値利確予定。" oninput="saveMemo('${stock.code}')"></textarea>
           </div>
 
           <div id="tv-container-wrap-${stock.code}" class="tv-chart-wrap">
@@ -959,6 +1287,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         if (select.selectedIndex === 0) {
           container.innerHTML = initialContainerHtml;
           updatePositionSizes();
+          updateStarUI();
+          loadAllMemos();
           sortCards();
           return;
         }
@@ -969,6 +1299,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           if (headerGenAt) headerGenAt.textContent = `${chosenDate} (アーカイブ)`;
           if (headerPool) headerPool.textContent = `${list.length}件`;
           updatePositionSizes();
+          updateStarUI();
+          loadAllMemos();
           sortCards();
         }
       });
@@ -976,6 +1308,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     window.addEventListener("DOMContentLoaded", () => {
       updatePositionSizes();
+      updateStarUI();
+      loadAllMemos();
       initArchiveSwitcher();
     });
   </script>
@@ -1065,9 +1399,13 @@ PER: {pe_str} / PSR: {psr_str}
 5. moat_rating: 参入障壁・競争優位性（"HIGH": 独自特許/強固なスイッチングコスト, "MEDIUM": 先行者優位/高シェア, "LOW": 価格競争リスク）
 6. growth_story: 10倍化への起爆シナリオ（強気視点、業績モメンタムやTAM展開を130〜150字程度で明瞭に記述）
 7. risk_factors: 最大の警戒リスク・落とし穴（弱気監査視点、競合参入や一過性特需などを80字程度で厳格に記述）
-8. entry_price: 押し目(25MA {stock_info.get('sma25')}円 付近)またはブレイク買い(52週高値 {stock_info.get('high_52w')}円 超)の目安価格
-9. stop_loss: 厳格な損切りライン（買値または25MA割れ基準で約 -7%〜-8%）
-10. risk_reward_ratio: リスクリワード比（数値のみ。例: 3.5）
+8. entry_price: 買値目安価格
+9. order_type: 注文執行種別（"52週高値ブレイク逆指値", "25MA押し目指値", "即時打診成行"のいずれか）
+10. stop_loss: 厳格な損切りライン（買値または25MA割れ基準で約 -7%〜-8%）
+11. take_profit_tp1: 第1利確ターゲット価格 (+20%前後、原資回収・ポジション1/3利確目安価格の数値)
+12. take_profit_tp2: 第2利確ターゲット価格 (+50%前後、追撃利確目安価格の数値)
+13. take_profit_tp3: 第3利確戦略テキスト（例: "25MA割れまでトレイリングストップで10倍化追従"）
+14. risk_reward_ratio: リスクリワード比（数値のみ。例: 3.5）
 
 以下のJSONフォーマットのみを返してください。
 {{
@@ -1079,7 +1417,11 @@ PER: {pe_str} / PSR: {psr_str}
   "growth_story": "...",
   "risk_factors": "...",
   "entry_price": 0,
+  "order_type": "52週高値ブレイク逆指値",
   "stop_loss": 0,
+  "take_profit_tp1": 0,
+  "take_profit_tp2": 0,
+  "take_profit_tp3": "25MA割れまでトレイリングストップ追従",
   "risk_reward_ratio": 3.5
 }}
 """
@@ -1101,6 +1443,17 @@ PER: {pe_str} / PSR: {psr_str}
                 res_json["tam_scale"] = f"{stock_info['sector']}関連市場"
             if "risk_reward_ratio" not in res_json:
                 res_json["risk_reward_ratio"] = 3.0
+            
+            entry = float(res_json.get("entry_price") or stock_info["close"])
+            if "order_type" not in res_json:
+                res_json["order_type"] = "押し目・ブレイク"
+            if "take_profit_tp1" not in res_json:
+                res_json["take_profit_tp1"] = round(entry * 1.2)
+            if "take_profit_tp2" not in res_json:
+                res_json["take_profit_tp2"] = round(entry * 1.5)
+            if "take_profit_tp3" not in res_json:
+                res_json["take_profit_tp3"] = "25MA割れまでトレイリングストップ追従"
+
             return res_json, "SUCCESS"
     except Exception as e:
         err_msg = str(e).upper()
@@ -1169,6 +1522,7 @@ def main():
                 print("[FATAL] 連続API障害のため緊急遮断します。")
                 sys.exit(1)
             
+            entry = item['close']
             stop = round(float(item['close']) * 0.92, 1)
             analysis = {
                 "score": 75,
@@ -1178,8 +1532,12 @@ def main():
                 "moat_rating": "MEDIUM",
                 "growth_story": f"{item['name']}はモメンタムと出来高水準を維持。独自事業の進捗が注目点。",
                 "risk_factors": "一時的な通信エラーのためテクニカル算定値を暫定表示。",
-                "entry_price": item['close'],
+                "entry_price": entry,
+                "order_type": "押し目・ブレイク",
                 "stop_loss": stop,
+                "take_profit_tp1": round(float(entry) * 1.2),
+                "take_profit_tp2": round(float(entry) * 1.5),
+                "take_profit_tp3": "25MA割れまでトレイリングストップ追従",
                 "risk_reward_ratio": 3.0
             }
         else:
@@ -1253,4 +1611,4 @@ def main():
     print("[INFO] 全パイプライン処理が正常に完了しました。")
 
 if __name__ == "__main__":
-    main()
+    main()

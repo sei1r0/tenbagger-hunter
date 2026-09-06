@@ -18,6 +18,7 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 
 from src.utils.market_calendar import guard_tokyo_market, get_jst_now
 from src.utils.notifier import send_notification, send_close_wrap_flex
+from src.utils.track_record import calculate_track_record
 
 CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 
@@ -154,6 +155,14 @@ def run_daily_close_wrap():
     pages_url = f"https://{repo_name.split('/')[0]}.github.io/{repo_name.split('/')[1]}/"
 
     send_close_wrap_flex(now_str, stock_results, stop_alerts, breakout_alerts, rebound_alerts, pages_url)
+    
+    # トラックレコード最新値（勝率・最高値更新・損益ステータス）を日次更新
+    try:
+        calculate_track_record()
+        print("[INFO] トラックレコード日次自動集計完了。")
+    except Exception as e:
+        print(f"[WARN] トラックレコード更新エラー: {e}")
+
     print("[INFO] 大引けレビュー配信完了。")
 
 if __name__ == "__main__":
