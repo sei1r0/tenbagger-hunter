@@ -2,129 +2,166 @@ import os
 import sys
 import json
 import time
-import datetime
 import pandas as pd
 import yfinance as yf
-from utils.notifier import send_notification
+from datetime import datetime
 
-CSV_PATH = "data/jpx_stocks.csv"
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-def load_stock_list():
-    """管理マスターCSVから銘柄一覧を安定読み込み"""
-    if not os.path.exists(CSV_PATH):
-        raise FileNotFoundError(f"{CSV_PATH} が見つかりません。")
-    df = pd.read_csv(CSV_PATH, dtype={'code': str})
-    print(f"[INFO] 監視対象銘柄数: {len(df)} 件")
-    return df
+from src.utils.notifier import send_notification
 
-def is_blackout_period(ticker_obj, blackout_days=14):
-    """直近指定日数以内に決算発表を控えているかを判定"""
-    try:
-        calendar = ticker_obj.calendar
-        if calendar is not None and not calendar.empty:
-            earnings_dates = []
-            if isinstance(calendar, dict) and 'Earnings Date' in calendar:
-                earnings_dates = calendar['Earnings Date']
-            elif hasattr(calendar, 'T') and 'Earnings Date' in calendar.T.columns:
-                earnings_dates = calendar.T['Earnings Date'].dropna().tolist()
+STOCKS_CSV = os.path.join(PROJECT_ROOT, "data", "jpx_stocks.csv")
+OUTPUT_JSON = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 
-            today = datetime.date.today()
-            for d in earnings_dates:
-                if isinstance(d, (datetime.datetime, datetime.date)):
-                    target_date = d.date() if isinstance(d, datetime.datetime) else d
-                    diff = (target_date - today).days
-                    if 0 <= diff <= blackout_days:
-                        return True, f"{target_date.strftime('%Y-%m-%d')} (直近{diff}日後)"
-    except Exception:
-        pass
-    return False, ""
+# テンバガー初動厳選基準（約40件前後に絞り込むプロ基準）
+MAX_MARKET_CAP_OKU = 300       # 時価総額 300億円以下（急成長ポテンシャル重視）
+MIN_TRADING_VALUE_MAN = 5000   # 1日売買代金 5,000万円以上（流動性と大口流入）
+BATCH_SIZE = 80                # yfinance API安定化バッチサイズ
+TARGET_POOL_LIMIT = 40         # スクリーニング結果として残す目標上限数
 
-def screen_stock(row):
-    """個別銘柄のテクニカル・定量・ブラックアウト判定"""
-    code_str = f"{row['code']}.T"
-    try:
-        t = yf.Ticker(code_str)
-        hist = t.history(period="1y")
-        if len(hist) < 150:
-            return None
-
-        # テクニカル指標算出
-        hist['SMA50'] = hist['Close'].rolling(window=50).mean()
-        hist['SMA150'] = hist['Close'].rolling(window=150).mean()
-        
-        latest_close = hist['Close'].iloc[-1]
-        latest_vol = hist['Volume'].iloc[-1]
-        sma50 = hist['SMA50'].iloc[-1]
-        sma150 = hist['SMA150'].iloc[-1]
-
-        # 1. テクニカルトレンド判定（株価 > SMA50 > SMA150）
-        if not (latest_close > sma50 > sma150):
-            return None
-
-        # 2. 流動性判定（1日の概算売買代金が 5,000万円以上）
-        trading_val = latest_close * latest_vol
-        if trading_val < 50_000_000:
-            return None
-
-        # 3. 会社情報・時価総額チェック
-        info = t.info
-        market_cap = info.get('marketCap')
-        if not market_cap:
-            return None
-
-        # 時価総額: 50億円以上 〜 1,000億円以下（テンバガー有望ゾーン）
-        # ※テスト時に引っかかりやすくするため上限を緩和する場合はここを調整可能
-        if not (5_000_000_000 <= market_cap <= 100_000_000_000):
-            return None
-
-        # 4. 決算直前ブラックアウトガード
-        is_bo, bo_detail = is_blackout_period(t, blackout_days=14)
-        if is_bo:
-            print(f"[SKIP] {row['name']} ({row['code']}) は決算直前の除外対象: {bo_detail}")
-            return None
-
-        return {
-            "code": str(row['code']),
-            "name": str(row['name']),
-            "market": str(row['market']),
-            "sector": str(row['sector']),
-            "close": round(latest_close, 1),
-            "market_cap_oku": round(market_cap / 100_000_000, 1),
-            "trading_value_man": round(trading_val / 10_000, 1),
-            "screened_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-    except Exception as e:
-        return None
-
-def main():
+def run_batch_screener():
     start_time = time.time()
-    os.makedirs("data", exist_ok=True)
+    if not os.path.exists(STOCKS_CSV):
+        print(f"[ERROR] {STOCKS_CSV} が見つかりません。")
+        sys.exit(1)
+
+    df_stocks = pd.read_csv(STOCKS_CSV, dtype={"code": str})
     
-    df_stocks = load_stock_list()
+    # フィルター1: 市場区分を「グロース」および「スタンダード」に限定（低成長プライムを除外）
+    df_stocks = df_stocks[df_stocks["market"].isin(["グロース", "スタンダード"])].copy()
+    
+    total_count = len(df_stocks)
+    print(f"[INFO] 成長市場（グロース・スタンダード）{total_count} 銘柄の高精度スクリーニングを開始...")
+
+    stock_dict = {f"{row['code']}.T": row for _, row in df_stocks.iterrows()}
+    tickers = list(stock_dict.keys())
+
     candidates = []
-    print("[INFO] 定量・テクニカルスクリーニングを開始します...")
 
-    for idx, row in df_stocks.iterrows():
-        result = screen_stock(row)
-        if result:
-            candidates.append(result)
-            print(f"[HIT] {result['code']} {result['name']} (時価総額: {result['market_cap_oku']}億円)")
+    for i in range(0, total_count, BATCH_SIZE):
+        batch_tickers = tickers[i : i + BATCH_SIZE]
+        print(f"[INFO] 分析中: {i + 1}〜{min(i + BATCH_SIZE, total_count)} / {total_count}")
 
-        time.sleep(0.3)
+        try:
+            # 過去1年分（52週高値計算用）の日足を一括取得
+            data = yf.download(
+                tickers=batch_tickers,
+                period="1y",
+                interval="1d",
+                group_by="ticker",
+                auto_adjust=True,
+                progress=False,
+                threads=True
+            )
+        except Exception as e:
+            print(f"[WARN] バッチ取得エラー: {e}")
+            continue
 
-    output_path = "data/screened_candidates.json"
-    with open(output_path, "w", encoding="utf-8") as f:
+        for ticker_symbol in batch_tickers:
+            row_meta = stock_dict[ticker_symbol]
+            try:
+                if len(batch_tickers) == 1:
+                    df = data.dropna()
+                else:
+                    if ticker_symbol not in data.columns.levels[0]:
+                        continue
+                    df = data[ticker_symbol].dropna()
+
+                if len(df) < 60:
+                    continue
+
+                closes = df["Close"]
+                volumes = df["Volume"]
+
+                curr_close = float(closes.iloc[-1])
+                curr_vol = float(volumes.iloc[-1])
+                trading_value_man = round((curr_close * curr_vol) / 10000, 1)
+
+                # フィルター2: 売買代金 5,000万円以上
+                if trading_value_man < MIN_TRADING_VALUE_MAN:
+                    continue
+
+                # テクニカル指標計算
+                sma25 = float(closes.rolling(window=25).mean().iloc[-1])
+                sma75 = float(closes.rolling(window=75).mean().iloc[-1])
+                
+                # フィルター3: パーフェクトオーダー基調（現在値 > 25MA かつ 25MA > 75MA）
+                if not (curr_close > sma25 and sma25 > sma75):
+                    continue
+
+                # フィルター4: 52週高値から15%以内のブレイク初動水準（オニール型モメンタム）
+                high_52w = float(closes.max())
+                if curr_close < (high_52w * 0.85):
+                    continue
+
+                # 時価総額チェック
+                t = yf.Ticker(ticker_symbol)
+                info = t.info or {}
+                market_cap = info.get("marketCap", 0)
+                if not market_cap:
+                    shares = info.get("sharesOutstanding", 0)
+                    market_cap = curr_close * shares if shares else 0
+
+                market_cap_oku = round(market_cap / 100000000, 1)
+
+                # フィルター5: 時価総額 300億円以下
+                if 0 < market_cap_oku <= MAX_MARKET_CAP_OKU:
+                    # 出来高急増率（直近5日平均 vs 25日平均）
+                    vol5 = float(volumes.iloc[-5:].mean())
+                    vol25 = float(volumes.iloc[-25:].mean())
+                    vol_surge = round(vol5 / max(vol25, 1), 2)
+
+                    candidates.append({
+                        "code": row_meta["code"],
+                        "name": row_meta["name"],
+                        "market": row_meta["market"],
+                        "sector": row_meta["sector"],
+                        "close": curr_close,
+                        "market_cap_oku": market_cap_oku,
+                        "trading_value_man": trading_value_man,
+                        "high_52w": high_52w,
+                        "vol_surge": vol_surge,
+                        "momentum_score": round((trading_value_man / max(market_cap_oku, 1)) * vol_surge, 2)
+                    })
+                    print(f"  ★ 厳選合格: {row_meta['code']} {row_meta['name']} ({market_cap_oku}億 / 代金:{trading_value_man}万 / 出来高比:{vol_surge}倍)")
+
+            except Exception:
+                continue
+
+        time.sleep(0.5)
+
+    # モメンタムスコア順（売買回転率 × 出来高急増率）にソート
+    candidates.sort(key=lambda x: x["momentum_score"], reverse=True)
+
+    # 40件前後に厳選
+    if len(candidates) > TARGET_POOL_LIMIT:
+        print(f"[INFO] 抽出 {len(candidates)} 件から初動上位 {TARGET_POOL_LIMIT} 銘柄を最終プールに設定しました。")
+        candidates = candidates[:TARGET_POOL_LIMIT]
+
+    os.makedirs(os.path.dirname(OUTPUT_JSON), exist_ok=True)
+    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(candidates, f, ensure_ascii=False, indent=2)
 
     elapsed = round(time.time() - start_time, 1)
-    msg = f"週末スクリーニング完了（所要時間: {elapsed}秒）\n通過銘柄数: {len(candidates)}件"
-    print(msg)
+    print(f"[INFO] スクリーニング完了: {len(candidates)} 件抽出 (所要時間: {elapsed}秒)")
 
+    # LINE通知
+    msg = f"東証厳選スクリーニング完了（所要時間: {elapsed}秒）\n合格銘柄数: {len(candidates)} 件\n\n"
     if candidates:
-        top_names = "\n".join([f"・{c['code']} {c['name']} ({c['market_cap_oku']}億)" for c in candidates[:5]])
-        send_notification("週末スクリーニング完了", f"{msg}\n\n【抽出銘柄】\n{top_names}\n\n※AI統合アナリティクス分析へ引き継がれます。")
+        top_samples = candidates[:5]
+        msg += "【厳選モメンタム上位】\n"
+        for c in top_samples:
+            msg += f"・{c['code']} {c['name']} ({c['market_cap_oku']}億 / 出来高急増:{c['vol_surge']}倍)\n"
+        if len(candidates) > 5:
+            msg += f"...他 {len(candidates) - 5} 銘柄\n"
+        msg += "\n※AIアナリストが上位15銘柄を深掘り分析します。"
     else:
-        send_notification("週末スクリーニング完了", f"{msg}\n基準（上昇トレンド・中小型時価総額・流動性）を満たす銘柄はありませんでした。")
+        msg += "今週は高精度ブレイク条件に合致する銘柄がありませんでした。"
+
+    send_notification("週末厳選スクリーニング結果", msg)
 
 if __name__ == "__main__":
-    main()
+    run_batch_screener()

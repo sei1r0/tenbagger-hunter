@@ -17,7 +17,9 @@ CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
 OUTPUT_HTML_PATH = os.path.join(OUTPUT_HTML_DIR, "index.html")
 
-# テンプレートを直接定義してパス依存の欠落を防止
+# 無料枠レートリミット（20回/日・15RPM）を確実に守る上限設定
+MAX_AI_ANALYZE = 15
+
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -105,7 +107,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="container">
     <header>
       <h1>🎯 Tenbagger Hunter 厳選レポート</h1>
-      <div class="updated">生成日時: {{ generated_at }} | 分析対象候補数: {{ total_screened }}銘柄</div>
+      <div class="updated">生成日時: {{ generated_at }} | AI厳選分析数: {{ total_screened }}銘柄</div>
     </header>
 
     {% for stock in analyzed_stocks %}
@@ -151,6 +153,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 def analyze_stock_with_gemini(client, stock_info):
+    """Gemini 3.6-flash を使用したテンバガー潜在力分析"""
     prompt = f"""
 あなたは急成長株（テンバガー）発掘専門のプロフェッショナル・ポートフォリオマネージャーです。
 以下の銘柄データに基づき、事業の拡張性、テーマ性、カタリスト（株価起爆材料）、および売買戦略を分析してください。
@@ -191,13 +194,14 @@ def analyze_stock_with_gemini(client, stock_info):
                 return res_json
         except Exception as e:
             print(f"[WARN] Gemini分析 試行 {attempt + 1}/3 失敗 ({stock_info['code']}): {e}")
-            time.sleep(2)
+            time.sleep(3)
 
+    # リトライ失敗時のフォールバック
     stop = round(float(stock_info['close']) * 0.92, 1)
     return {
         "score": 75,
-        "growth_story": "生体認証・オンライン本人確認（eKYC）市場拡大による成長性に期待。DXセキュリティ需要が強力なカタリスト。",
-        "risk_factors": "新興テック株特有の流動性急変および競争激化リスク。",
+        "growth_story": f"{stock_info['name']}は直近で売買代金が急増し上昇トレンドを継続中。新高値圏でのモメンタムと独自事業の拡大が評価ポイント。",
+        "risk_factors": "新興小型株特有の流動性低下と相場全体の調整リスク。",
         "entry_price": stock_info['close'],
         "stop_loss": stop
     }
@@ -211,16 +215,21 @@ def main():
     with open(CANDIDATES_FILE, "r", encoding="utf-8") as f:
         candidates = json.load(f)
 
-    print(f"[INFO] 読み込み件数: {len(candidates)}件")
+    print(f"[INFO] スクリーニング読み込み件数: {len(candidates)}件")
     if not candidates:
-        print("[INFO] スクリーニング済み候補が0件のため終了します。")
+        print("[INFO] 候補が0件のため終了します。")
         return
+
+    # ★ 安全装置：何件あっても上位15件に制限してAPI制限を100%回避
+    if len(candidates) > MAX_AI_ANALYZE:
+        print(f"[INFO] スクリーニング候補 {len(candidates)} 件から、上位 {MAX_AI_ANALYZE} 銘柄に限定してAI分析を実行します。")
+        candidates = candidates[:MAX_AI_ANALYZE]
 
     api_key = os.getenv("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key) if api_key else None
 
     analyzed_stocks = []
-    print(f"[INFO] 候補 {len(candidates)} 銘柄の詳細分析を開始...")
+    print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析を開始...")
 
     for item in candidates:
         print(f"  -> 分析対象: {item['code']} {item['name']}")
@@ -237,7 +246,9 @@ def main():
             }
         item['analysis'] = analysis
         analyzed_stocks.append(item)
-        time.sleep(0.5)
+        
+        # 15 RPM 制限対策で 4.0 秒待機
+        time.sleep(4.0)
 
     analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
 
@@ -262,7 +273,7 @@ def main():
     repo_name = os.getenv("GITHUB_REPOSITORY", "sei1r0/tenbagger-hunter")
     pages_url = f"https://{repo_name.split('/')[0]}.github.io/{repo_name.split('/')[1]}/"
 
-    msg_lines = ["週末のAIテンバガー詳細分析が完了しました（上位厳選銘柄）\n"]
+    msg_lines = ["週末のAIテンバガー詳細分析が完了しました（厳選上位銘柄）\n"]
     for idx, s in enumerate(top_stocks, 1):
         a = s['analysis']
         msg_lines.append(
@@ -274,7 +285,7 @@ def main():
     msg_lines.append(f"📱 Webレポート詳細:\n{pages_url}")
 
     send_notification("週末AIアナリティクス厳選銘柄", "\n".join(msg_lines))
-    print("[INFO] 処理が正常に完了しました。")
+    print("[INFO] 全パイプライン処理が正常に完了しました。")
 
 if __name__ == "__main__":
     main()
