@@ -13,10 +13,10 @@ if PROJECT_ROOT not in sys.path:
 
 try:
     from src.utils.market_calendar import guard_tokyo_market, is_us_market_open_prev_day
-    from src.utils.notifier import send_notification
+    from src.utils.notifier import send_notification, send_daily_gate_flex
 except ModuleNotFoundError:
     from utils.market_calendar import guard_tokyo_market, is_us_market_open_prev_day
-    from utils.notifier import send_notification
+    from utils.notifier import send_notification, send_daily_gate_flex
 
 CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 
@@ -267,7 +267,19 @@ def main():
     if action_sections:
         body += "\n\n" + "\n\n".join(action_sections)
 
-    send_notification(title="朝の地合いゲート判定", message=body, color_level=status)
+    # Flex メッセージ送信（失敗時はテキスト通知へフォールバック）
+    pages_url = os.getenv("PAGES_URL", "https://sei1r0.github.io/tenbagger-hunter/")
+    sent_flex = send_daily_gate_flex(
+        status=status,
+        reason=res_json.get("reason", ""),
+        action_guideline=res_json.get("action_guideline", ""),
+        market_snapshot=market_snapshot,
+        risk_alerts=risk_alerts,
+        entry_alerts=entry_alerts,
+        pages_url=pages_url
+    )
+    if not sent_flex:
+        send_notification(title="朝の地合いゲート判定", message=body, color_level=status)
     print("日次地合い判定およびウォッチリスト追跡が正常に完了し、通知処理を実行しました。")
 
 if __name__ == "__main__":

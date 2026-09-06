@@ -27,3 +27,14 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Private & Personal Data (Zero-leak policy)
+scratch/
+private/
+local_data/
+my_portfolio/
+*.secret
+*.secret.*
+personal_*.json
+personal_*.csv
+trade_log_*.csv

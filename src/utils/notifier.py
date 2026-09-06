@@ -414,3 +414,200 @@ def send_close_wrap_flex(date_str, stock_results, stop_alerts, breakout_alerts, 
             print(f"[WARN] Flex送信失敗 (Status: {res.status_code}): {res.text}")
     except Exception as e:
         print(f"[ERROR] Flex送信例外: {e}")
+
+def send_daily_gate_flex(status, reason, action_guideline, market_snapshot, risk_alerts, entry_alerts, pages_url="https://sei1r0.github.io/tenbagger-hunter/"):
+    """朝08:35 地合いゲート ＆ 最注目アクション銘柄のLINE Flex Message配信"""
+    token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+    user_id = os.getenv("LINE_USER_ID")
+
+    if not token or not user_id:
+        return
+
+    status_theme = {
+        "GREEN": {"label": "🟢 リスクオン（買付許可）", "color": "#10b981", "bg": "#064e3b"},
+        "YELLOW": {"label": "🟡 警戒局面（ロット半減）", "color": "#f59e0b", "bg": "#78350f"},
+        "RED": {"label": "🔴 リスクオフ（新規買停止）", "color": "#ef4444", "bg": "#7f1d1d"}
+    }.get(status, {"label": "🟡 警戒局面", "color": "#f59e0b", "bg": "#78350f"})
+
+    bubbles = []
+
+    # 1枚目: 地合いゲート判定 ＆ 米国市場指標
+    nasdaq_pct = market_snapshot.get('Nasdaq', {}).get('pct_change', 0.0)
+    sp500_pct = market_snapshot.get('S&P500', {}).get('pct_change', 0.0)
+    russell_pct = market_snapshot.get('Russell2000', {}).get('pct_change', 0.0)
+    tnx_val = market_snapshot.get('US_10Y_Yield', {}).get('close', '-')
+    usdjpy_val = market_snapshot.get('USD_JPY', {}).get('close', '-')
+
+    n_sign = "+" if nasdaq_pct > 0 else ""
+    s_sign = "+" if sp500_pct > 0 else ""
+    r_sign = "+" if russell_pct > 0 else ""
+
+    bubble_gate = {
+        "type": "bubble",
+        "size": "kilo",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": status_theme["bg"],
+            "paddingAll": "12px",
+            "contents": [
+                {"type": "text", "text": "🚦 朝の地合いゲート判定 (08:35)", "color": "#ffffff", "weight": "bold", "size": "xs"},
+                {"type": "text", "text": status_theme["label"], "color": "#ffffff", "weight": "bold", "size": "md", "margin": "xs"}
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "12px",
+            "contents": [
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                        {"type": "text", "text": "📋 判定理由:", "size": "xs", "color": "#94a3b8", "weight": "bold"},
+                        {"type": "text", "text": reason or "マクロ指標に基づき算出", "size": "xs", "color": "#f8fafc", "wrap": True, "margin": "xs"}
+                    ]
+                },
+                {"type": "separator", "margin": "sm", "color": "#334155"},
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "margin": "sm",
+                    "contents": [
+                        {"type": "text", "text": "🎯 行動方針:", "size": "xs", "color": status_theme["color"], "weight": "bold"},
+                        {"type": "text", "text": action_guideline or "指値位置を確認してください", "size": "xs", "color": "#f8fafc", "wrap": True, "margin": "xs"}
+                    ]
+                },
+                {"type": "separator", "margin": "sm", "color": "#334155"},
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "margin": "sm",
+                    "contents": [
+                        {"type": "text", "text": "🇺🇸 前夜の主要マクロ指標", "size": "xxs", "color": "#64748b", "weight": "bold"},
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "margin": "xs",
+                            "contents": [
+                                {"type": "text", "text": "Nasdaq", "size": "xxs", "color": "#94a3b8", "flex": 5},
+                                {"type": "text", "text": f"{n_sign}{nasdaq_pct}%", "size": "xxs", "color": "#10b981" if nasdaq_pct >= 0 else "#ef4444", "weight": "bold", "align": "end", "flex": 5}
+                            ]
+                        },
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "margin": "xs",
+                            "contents": [
+                                {"type": "text", "text": "ラッセル2000(米中小型)", "size": "xxs", "color": "#94a3b8", "flex": 6},
+                                {"type": "text", "text": f"{r_sign}{russell_pct}%", "size": "xxs", "color": "#10b981" if russell_pct >= 0 else "#ef4444", "weight": "bold", "align": "end", "flex": 4}
+                            ]
+                        },
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "margin": "xs",
+                            "contents": [
+                                {"type": "text", "text": "米10年金利 / ドル円", "size": "xxs", "color": "#94a3b8", "flex": 6},
+                                {"type": "text", "text": f"{tnx_val}% / {usdjpy_val}円", "size": "xxs", "color": "#38bdf8", "weight": "bold", "align": "end", "flex": 6}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "8px",
+            "contents": [
+                {
+                    "type": "button",
+                    "action": {"type": "uri", "label": "ダッシュボードを開く", "uri": pages_url},
+                    "style": "primary",
+                    "color": "#0284c7",
+                    "height": "sm"
+                }
+            ]
+        }
+    }
+    bubbles.append(bubble_gate)
+
+    # 2枚目: 本日の最注目アクション銘柄
+    action_items = []
+    if entry_alerts:
+        action_items.append({"type": "text", "text": "🎯 買値圏・押し目エントリー機会", "size": "xs", "color": "#38bdf8", "weight": "bold", "margin": "xs"})
+        for e in entry_alerts[:3]:
+            action_items.append({"type": "text", "text": e, "size": "xxs", "color": "#34d399", "wrap": True, "margin": "xs"})
+    if risk_alerts:
+        action_items.append({"type": "text", "text": "⚠️ 損切り・警戒シグナル", "size": "xs", "color": "#f87171", "weight": "bold", "margin": "sm"})
+        for r in risk_alerts[:3]:
+            action_items.append({"type": "text", "text": r, "size": "xxs", "color": "#f87171", "wrap": True, "margin": "xs"})
+
+    if not action_items:
+        action_items.append({
+            "type": "text",
+            "text": "本日、急変や損切り到達銘柄はありません。全候補が健全ベースを維持しています。",
+            "size": "xs",
+            "color": "#94a3b8",
+            "wrap": True,
+            "margin": "sm"
+        })
+
+    bubble_actions = {
+        "type": "bubble",
+        "size": "kilo",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#0f172a",
+            "paddingAll": "12px",
+            "contents": [
+                {"type": "text", "text": "🔥 本日の注目アクション銘柄", "color": "#f59e0b", "weight": "bold", "size": "sm"},
+                {"type": "text", "text": "ブレイク接近・25MA押し目トリガー", "color": "#94a3b8", "size": "xxs", "margin": "xs"}
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "12px",
+            "contents": action_items
+        }
+    }
+    bubbles.append(bubble_actions)
+
+    flex_contents = {
+        "type": "carousel",
+        "contents": bubbles
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+
+    payload = {
+        "to": user_id,
+        "messages": [
+            {
+                "type": "flex",
+                "altText": f"🚦 朝の地合いゲート判定: {status_theme['label']}",
+                "contents": flex_contents
+            }
+        ]
+    }
+
+    try:
+        res = requests.post(LINE_PUSH_URL, headers=headers, json=payload, timeout=15)
+        if res.status_code == 200:
+            print("[INFO] 朝の地合いゲート LINE Flex Message送信成功。")
+            return True
+        else:
+            print(f"[WARN] Flex送信失敗 (Status: {res.status_code}): {res.text}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] Flex送信例外: {e}")
+        return False

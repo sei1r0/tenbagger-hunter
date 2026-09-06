@@ -397,6 +397,86 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .track-table th { color: var(--text-sub); font-weight: 500; background: rgba(0,0,0,0.2); }
     .badge-win { color: var(--accent-green); font-weight: bold; }
 
+    /* テーブル表示用スタイル (Spreadsheet View) */
+    .table-view-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .main-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    .main-table th, .main-table td {
+      padding: 0.65rem 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: left;
+    }
+    .main-table th {
+      background: #0f172a;
+      color: var(--text-sub);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      user-select: none;
+    }
+    .main-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .main-table .num-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ビュー切替ボタングループ */
+    .view-switch-group {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+    }
+    .view-switch-btn {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .view-switch-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    /* プライバシーマスク表示 (金額・株数の伏字化) */
+    .privacy-masked .calc-shares,
+    .privacy-masked .calc-amount,
+    .privacy-masked #calcRiskBudgetDisplay,
+    .privacy-masked .table-calc-shares,
+    .privacy-masked .table-calc-amount {
+      filter: blur(5px);
+      user-select: none;
+      transition: filter 0.2s;
+    }
+    .privacy-active-btn {
+      border-color: #a855f7 !important;
+      color: #c084fc !important;
+      background: rgba(168, 85, 247, 0.15) !important;
+    }
+
     /* トースト通知ポップアップ */
     .toast {
       position: fixed;
@@ -529,7 +609,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <span style="font-size: 1.2rem;">💰</span>
         <div>
           <strong style="font-size: 0.95rem; color: #38bdf8;">資金管理・適正ポジションサイジング計算機</strong>
-          <div style="font-size: 0.75rem; color: var(--text-sub);">1トレードの許容リスク（2%ルール）に基づき、各銘柄の推奨ロット数と概算投資額を即時計算します</div>
+          <div style="font-size: 0.75rem; color: var(--text-sub);">1トレードの許容リスク（2%ルール）に基づき、推奨ロット数と概算投資額を計算します (設定はブラウザのみに安全保存)</div>
         </div>
       </div>
       <div class="calc-inputs">
@@ -552,9 +632,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <!-- 🛠️ コントロール ＆ 証券口座連携ツールバー -->
     <div class="controls">
       <div class="controls-left">
+        <div class="view-switch-group">
+          <button type="button" class="view-switch-btn active" id="btnViewCard" onclick="switchViewMode('card')">🔲 カード表示</button>
+          <button type="button" class="view-switch-btn" id="btnViewTable" onclick="switchViewMode('table')">📑 テーブル一覧</button>
+        </div>
         <div>
           <label style="font-size: 0.82rem; color: var(--text-sub);">並び替え:</label>
-          <select id="sortSelect" onchange="sortCards()">
+          <select id="sortSelect" onchange="sortAllViews()">
             <option value="score">AIスコア順</option>
             <option value="conviction">確信度順 (S > A > B)</option>
             <option value="rs">RS（市場相対力）順</option>
@@ -564,16 +648,105 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </select>
         </div>
         <div>
-          <input type="text" id="filterInput" onkeyup="filterCards()" placeholder="銘柄名・コード・テーマ検索...">
+          <input type="text" id="filterInput" onkeyup="filterAllViews()" placeholder="銘柄名・コード・テーマ検索...">
         </div>
       </div>
       <div class="controls-right">
+        <button type="button" class="btn-link" id="privacyBtn" onclick="togglePrivacyMode()" title="個人資産・ロット計算結果の画面伏字マスク">👁️ プライバシー: 表示中</button>
         <button type="button" class="btn-link" onclick="copyStockCodes()" title="SBI証券/楽天証券/TradingViewへ一括インポート可能">📋 コード一括コピー</button>
         <button type="button" class="btn-link" onclick="exportCsv()">📥 CSVエクスポート</button>
-        <button type="button" class="btn-link" id="starFilterBtn" onclick="toggleStarFilter()">⭐ お気に入りのみ</button>
+        <button type="button" class="btn-link" id="starFilterBtn" onclick="toggleStarFilter()">⭐ お気に入り</button>
       </div>
     </div>
 
+    <!-- 📑 テーブル一覧コンテナ (Spreadsheet View) -->
+    <div id="tableViewWrap" class="table-view-wrap" style="display: none;">
+      <table class="main-table" id="mainTable">
+        <thead>
+          <tr>
+            <th style="width: 35px; text-align: center;">☆</th>
+            <th>コード・銘柄名</th>
+            <th>市場/業種</th>
+            <th>確信度</th>
+            <th class="num-cell">潜在スコア</th>
+            <th class="num-cell">現在値</th>
+            <th>買値目安 (注文種別)</th>
+            <th class="num-cell">損切ライン</th>
+            <th>TP1 / TP2 利確目標</th>
+            <th class="num-cell">推奨ロット</th>
+            <th>クオンツ・需給タグ</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          {% for stock in analyzed_stocks %}
+          <tr class="table-row"
+              data-code="{{ stock.code }}"
+              data-score="{{ stock.analysis.score }}" 
+              data-conviction="{{ stock.analysis.conviction_tier }}"
+              data-rs="{{ stock.rs_rating or 0 }}"
+              data-market-cap="{{ stock.market_cap_oku }}"
+              data-surge="{{ stock.vol_surge }}"
+              data-growth="{{ stock.rev_growth_pct }}"
+              data-text="{{ stock.code }} {{ stock.name }} {{ stock.sector }} {{ stock.analysis.conviction_tier }} {{ ' '.join(stock.analysis.theme_tags) }}">
+            <td style="text-align: center;">
+              <button type="button" class="star-btn" id="tbl-star-{{ stock.code }}" onclick="toggleStar('{{ stock.code }}')" title="お気に入り登録">☆</button>
+            </td>
+            <td>
+              <strong>{{ stock.code }} {{ stock.name }}</strong>
+              {% if stock.badge == 'STAY' %}
+                <span class="badge-stay" style="font-size: 0.65rem;">2週連続</span>
+              {% else %}
+                <span class="badge-new" style="font-size: 0.65rem;">今週初</span>
+              {% endif %}
+            </td>
+            <td style="color: var(--text-sub);">{{ stock.market }} / {{ stock.sector }}</td>
+            <td>
+              {% if stock.analysis.conviction_tier == 'S' %}
+                <span class="tier-badge tier-badge-s">★Sランク</span>
+              {% elif stock.analysis.conviction_tier == 'A' %}
+                <span class="tier-badge tier-badge-a">Aランク</span>
+              {% else %}
+                <span class="tier-badge tier-badge-b">Bランク</span>
+              {% endif %}
+            </td>
+            <td class="num-cell" style="font-weight: bold; color: var(--accent-green);">{{ stock.analysis.score }}点</td>
+            <td class="num-cell" style="font-weight: bold;">{{ stock.close }}円</td>
+            <td>
+              <span style="color: #38bdf8; font-weight: bold;">{{ stock.analysis.entry_price or stock.close }}円</span>
+              <span class="pill pill-moat" style="font-size: 0.65rem; padding: 1px 4px;">{{ stock.analysis.order_type or '押し目・ブレイク' }}</span>
+            </td>
+            <td class="num-cell" style="color: var(--accent-red); font-weight: bold;">{{ stock.analysis.stop_loss or (stock.close * 0.92)|round(1) }}円</td>
+            <td>
+              <span style="color: var(--accent-green); font-size: 0.78rem;">TP1: {{ stock.analysis.take_profit_tp1 or (stock.close * 1.2)|round(0)|int }}円</span>
+              <span style="color: var(--accent-gold); font-size: 0.78rem; margin-left: 4px;">TP2: {{ stock.analysis.take_profit_tp2 or (stock.close * 1.5)|round(0)|int }}円</span>
+            </td>
+            <td class="num-cell">
+              <span class="table-calc-shares" data-entry="{{ stock.analysis.entry_price or stock.close }}" data-stop="{{ stock.analysis.stop_loss or (stock.close * 0.92)|round(1) }}">-</span> 株
+              <span style="color: var(--text-sub); font-size: 0.72rem;">(<span class="table-calc-amount">-</span>万)</span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 3px; flex-wrap: wrap; max-width: 240px;">
+                <span class="pill pill-rs">RS:+{{ stock.rs_rating }}%</span>
+                {% if stock.is_vcp %}<span class="pill pill-vcp">VCP</span>{% endif %}
+                {% if stock.is_clean_margin %}<span class="pill pill-clean-margin">需給クリーン</span>{% endif %}
+                {% if stock.is_stage2 %}<span class="pill pill-stage2">Stage2</span>{% endif %}
+                {% if stock.is_earnings_imminent %}<span class="pill pill-earnings-warn">決算直前</span>{% endif %}
+              </div>
+            </td>
+            <td>
+              <div style="display: flex; gap: 4px;">
+                <button type="button" class="btn-link" style="padding: 2px 5px; font-size: 0.72rem;" onclick="toggleMemo('{{ stock.code }}')">📝</button>
+                <a class="btn-link" style="padding: 2px 5px; font-size: 0.72rem;" href="https://kabutan.jp/stock/chart?code={{ stock.code }}" target="_blank">📊 株探</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 🔲 カード一覧コンテナ (Card View) -->
     <div id="cardsContainer">
       {% for stock in analyzed_stocks %}
       <div class="card" 
@@ -799,6 +972,63 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       setTimeout(() => { toast.style.display = "none"; }, 3200);
     }
 
+    /* ビュー切替 (Card vs Table) */
+    function switchViewMode(mode) {
+      const cardsContainer = document.getElementById("cardsContainer");
+      const tableViewWrap = document.getElementById("tableViewWrap");
+      const btnCard = document.getElementById("btnViewCard");
+      const btnTable = document.getElementById("btnViewTable");
+
+      if (mode === "table") {
+        if (cardsContainer) cardsContainer.style.display = "none";
+        if (tableViewWrap) tableViewWrap.style.display = "block";
+        if (btnCard) btnCard.classList.remove("active");
+        if (btnTable) btnTable.classList.add("active");
+      } else {
+        if (cardsContainer) cardsContainer.style.display = "block";
+        if (tableViewWrap) tableViewWrap.style.display = "none";
+        if (btnCard) btnCard.classList.add("active");
+        if (btnTable) btnTable.classList.remove("active");
+      }
+      localStorage.setItem("tb_view_mode", mode);
+    }
+
+    function loadViewMode() {
+      const saved = localStorage.getItem("tb_view_mode") || "card";
+      switchViewMode(saved);
+    }
+
+    /* プライバシー伏字マスクモード (Privacy Mask) */
+    function togglePrivacyMode() {
+      const isMasked = document.body.classList.toggle("privacy-masked");
+      const btn = document.getElementById("privacyBtn");
+      if (btn) {
+        if (isMasked) {
+          btn.textContent = "🔒 伏字マスク中 (安全)";
+          btn.classList.add("privacy-active-btn");
+          showToast("🔒 個人資金・ロット計算結果を伏字マスクしました");
+        } else {
+          btn.textContent = "👁️ プライバシー: 表示中";
+          btn.classList.remove("privacy-active-btn");
+          showToast("👁️ 通常表示モードに戻しました");
+        }
+      }
+      localStorage.setItem("tb_privacy_mode", isMasked ? "on" : "off");
+    }
+
+    function loadPrivacyMode() {
+      const saved = localStorage.getItem("tb_privacy_mode");
+      if (saved === "on") {
+        document.body.classList.add("privacy-masked");
+        const btn = document.getElementById("privacyBtn");
+        if (btn) {
+          btn.textContent = "🔒 伏字マスク中 (安全)";
+          btn.classList.add("privacy-active-btn");
+        }
+      }
+    }
+
+    /* TradingView チャート展開 */
     function toggleTvChart(code) {
       const wrap = document.getElementById(`tv-container-wrap-${code}`);
       const btn = document.getElementById(`tv-btn-${code}`);
@@ -828,17 +1058,33 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }
     }
 
+    /* ポジションサイジング計算 ＆ LocalStorage安全保持 */
+    function loadUserCapital() {
+      const savedCap = localStorage.getItem("tb_user_capital");
+      const savedRisk = localStorage.getItem("tb_user_risk_pct");
+      const capitalInput = document.getElementById("calcCapital");
+      const riskPctInput = document.getElementById("calcRiskPct");
+      if (capitalInput && savedCap) capitalInput.value = savedCap;
+      if (riskPctInput && savedRisk) riskPctInput.value = savedRisk;
+    }
+
     function updatePositionSizes() {
       const capitalInput = document.getElementById("calcCapital");
       const riskPctInput = document.getElementById("calcRiskPct");
       const capital = parseFloat(capitalInput ? capitalInput.value : 1000000) || 1000000;
       const riskPct = (parseFloat(riskPctInput ? riskPctInput.value : 2.0) || 2.0) / 100.0;
+      
+      // ブラウザに安全保存 (Gitには一切送信されない)
+      if (capitalInput) localStorage.setItem("tb_user_capital", capitalInput.value);
+      if (riskPctInput) localStorage.setItem("tb_user_risk_pct", riskPctInput.value);
+
       const riskBudget = capital * riskPct;
       const riskBudgetDisplay = document.getElementById("calcRiskBudgetDisplay");
       if (riskBudgetDisplay) {
         riskBudgetDisplay.textContent = Math.round(riskBudget).toLocaleString() + " 円";
       }
 
+      // 1. カードビューのロット数更新
       document.querySelectorAll(".card").forEach(card => {
         const sharesEl = card.querySelector(".calc-shares");
         const amountEl = card.querySelector(".calc-amount");
@@ -857,6 +1103,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         let shares = Math.floor(riskBudget / riskPerShare / 100) * 100;
         if (shares < 100) shares = 100;
         
+        const totalCostMan = (shares * entry) / 10000;
+        sharesEl.textContent = shares.toLocaleString();
+        if (amountEl) amountEl.textContent = totalCostMan.toFixed(1);
+      });
+
+      // 2. テーブルビューのロット数更新
+      document.querySelectorAll(".table-row").forEach(row => {
+        const sharesEl = row.querySelector(".table-calc-shares");
+        const amountEl = row.querySelector(".table-calc-amount");
+        if (!sharesEl) return;
+
+        const entry = parseFloat(sharesEl.dataset.entry) || 0;
+        const stop = parseFloat(sharesEl.dataset.stop) || (entry * 0.92);
+
+        if (entry <= 0) {
+          sharesEl.textContent = "-";
+          if (amountEl) amountEl.textContent = "-";
+          return;
+        }
+
+        const riskPerShare = Math.max(entry - stop, entry * 0.05);
+        let shares = Math.floor(riskBudget / riskPerShare / 100) * 100;
+        if (shares < 100) shares = 100;
+
         const totalCostMan = (shares * entry) / 10000;
         sharesEl.textContent = shares.toLocaleString();
         if (amountEl) amountEl.textContent = totalCostMan.toFixed(1);
@@ -979,7 +1249,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         starred.push(code);
       }
       saveStarredCodes(starred);
-      if (starFilterActive) filterCards();
+      if (starFilterActive) filterAllViews();
     }
 
     function updateStarUI() {
@@ -987,9 +1257,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const btn = document.getElementById("starFilterBtn");
       if (btn) btn.textContent = `⭐ お気に入り (${starred.length}件)`;
 
+      // カードビューのスター更新
       document.querySelectorAll(".card").forEach(c => {
         const code = c.dataset.code;
         const starBtn = document.getElementById(`star-${code}`);
+        if (starBtn) {
+          if (starred.includes(code)) {
+            starBtn.textContent = "★";
+            starBtn.classList.add("star-active");
+          } else {
+            starBtn.textContent = "☆";
+            starBtn.classList.remove("star-active");
+          }
+        }
+      });
+
+      // テーブルビューのスター更新
+      document.querySelectorAll(".table-row").forEach(r => {
+        const code = r.dataset.code;
+        const starBtn = document.getElementById(`tbl-star-${code}`);
         if (starBtn) {
           if (starred.includes(code)) {
             starBtn.textContent = "★";
@@ -1010,13 +1296,24 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         btn.style.color = starFilterActive ? "var(--accent-gold)" : "#94a3b8";
         btn.style.background = starFilterActive ? "rgba(245, 158, 11, 0.15)" : "rgba(255,255,255,0.06)";
       }
-      filterCards();
+      filterAllViews();
     }
 
     /* LocalStorage メモ管理 */
     function toggleMemo(code) {
       const wrap = document.getElementById(`memo-wrap-${code}`);
-      if (!wrap) return;
+      if (!wrap) {
+        // テーブルビューからの呼び出し時はカードビューへスクロール＆展開
+        switchViewMode("card");
+        const cardWrap = document.getElementById(`memo-wrap-${code}`);
+        if (cardWrap) cardWrap.style.display = "block";
+        const ta = document.getElementById(`memo-text-${code}`);
+        if (ta) {
+          ta.value = localStorage.getItem(`tb_memo_${code}`) || "";
+          ta.focus();
+        }
+        return;
+      }
       const isHidden = wrap.style.display === "none" || !wrap.style.display;
       wrap.style.display = isHidden ? "block" : "none";
       if (isHidden) {
@@ -1045,14 +1342,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       });
     }
 
-    function sortCards() {
+    /* ソート処理 (Card & Table 同時対応) */
+    function sortAllViews() {
       const criteria = document.getElementById("sortSelect").value;
-      const container = document.getElementById("cardsContainer");
-      const cards = Array.from(container.getElementsByClassName("card"));
-
       const tierRank = {"S": 3, "A": 2, "B": 1};
 
-      cards.sort((a, b) => {
+      const sortComparator = (a, b) => {
         if (criteria === "score") return Number(b.dataset.score) - Number(a.dataset.score);
         if (criteria === "conviction") return (tierRank[b.dataset.conviction] || 0) - (tierRank[a.dataset.conviction] || 0);
         if (criteria === "rs") return Number(b.dataset.rs) - Number(a.dataset.rs);
@@ -1060,14 +1355,31 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         if (criteria === "surge") return Number(b.dataset.surge) - Number(a.dataset.surge);
         if (criteria === "growth") return Number(b.dataset.growth) - Number(a.dataset.growth);
         return 0;
-      });
+      };
 
-      cards.forEach(c => container.appendChild(c));
+      // カードのソート
+      const cardsContainer = document.getElementById("cardsContainer");
+      if (cardsContainer) {
+        const cards = Array.from(cardsContainer.getElementsByClassName("card"));
+        cards.sort(sortComparator);
+        cards.forEach(c => cardsContainer.appendChild(c));
+      }
+
+      // テーブル行のソート
+      const tableBody = document.getElementById("tableBody");
+      if (tableBody) {
+        const rows = Array.from(tableBody.getElementsByClassName("table-row"));
+        rows.sort(sortComparator);
+        rows.forEach(r => tableBody.appendChild(r));
+      }
     }
 
-    function filterCards() {
+    /* 検索フィルター (Card & Table 同時対応) */
+    function filterAllViews() {
       const q = document.getElementById("filterInput").value.toLowerCase();
       const starred = getStarredCodes();
+
+      // カードのフィルター
       const cards = document.getElementsByClassName("card");
       for (let card of cards) {
         const code = card.dataset.code;
@@ -1075,6 +1387,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const matchesQuery = text.includes(q);
         const matchesStar = !starFilterActive || starred.includes(code);
         card.style.display = (matchesQuery && matchesStar) ? "block" : "none";
+      }
+
+      // テーブル行のフィルター
+      const rows = document.getElementsByClassName("table-row");
+      for (let row of rows) {
+        const code = row.dataset.code;
+        const text = row.dataset.text.toLowerCase();
+        const matchesQuery = text.includes(q);
+        const matchesStar = !starFilterActive || starred.includes(code);
+        row.style.display = (matchesQuery && matchesStar) ? "" : "none";
       }
     }
 
@@ -1263,11 +1585,80 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       `;
     }
 
+    function renderStockRow(stock) {
+      const a = stock.analysis || {};
+      const score = a.score || stock.score || 80;
+      const conviction = a.conviction_tier || stock.conviction_tier || "A";
+      const entry = a.entry_price || stock.entry_price || stock.close || stock.recommend_price || 0;
+      const stop = a.stop_loss || stock.stop_loss || Math.round(entry * 0.92);
+      const orderType = a.order_type || stock.order_type || "押し目・ブレイク";
+      const tp1 = a.take_profit_tp1 || stock.take_profit_tp1 || Math.round(entry * 1.2);
+      const tp2 = a.take_profit_tp2 || stock.take_profit_tp2 || Math.round(entry * 1.5);
+      const tags = a.theme_tags || stock.theme_tags || [stock.sector || "新興"];
+      const rs = stock.rs_rating || 0;
+      const mcap = stock.market_cap_oku || 0;
+      const surge = stock.vol_surge || 1.0;
+      const growth = stock.rev_growth_pct || 0;
+
+      let tierBadge = `<span class="tier-badge tier-badge-b">Bランク</span>`;
+      if (conviction === "S") tierBadge = `<span class="tier-badge tier-badge-s">★Sランク</span>`;
+      else if (conviction === "A") tierBadge = `<span class="tier-badge tier-badge-a">Aランク</span>`;
+
+      return `
+        <tr class="table-row"
+            data-code="${stock.code}"
+            data-score="${score}" 
+            data-conviction="${conviction}"
+            data-rs="${rs}"
+            data-market-cap="${mcap}"
+            data-surge="${surge}"
+            data-growth="${growth}"
+            data-text="${stock.code} ${stock.name} ${stock.sector || ''} ${conviction} ${tags.join(' ')}">
+          <td style="text-align: center;">
+            <button type="button" class="star-btn" id="tbl-star-${stock.code}" onclick="toggleStar('${stock.code}')" title="お気に入り登録">☆</button>
+          </td>
+          <td><strong>${stock.code} ${stock.name}</strong></td>
+          <td style="color: var(--text-sub);">${stock.market || ''} / ${stock.sector || ''}</td>
+          <td>${tierBadge}</td>
+          <td class="num-cell" style="font-weight: bold; color: var(--accent-green);">${score}点</td>
+          <td class="num-cell" style="font-weight: bold;">${stock.close || entry}円</td>
+          <td>
+            <span style="color: #38bdf8; font-weight: bold;">${entry}円</span>
+            <span class="pill pill-moat" style="font-size: 0.65rem; padding: 1px 4px;">${orderType}</span>
+          </td>
+          <td class="num-cell" style="color: var(--accent-red); font-weight: bold;">${stop}円</td>
+          <td>
+            <span style="color: var(--accent-green); font-size: 0.78rem;">TP1: ${tp1}円</span>
+            <span style="color: var(--accent-gold); font-size: 0.78rem; margin-left: 4px;">TP2: ${tp2}円</span>
+          </td>
+          <td class="num-cell">
+            <span class="table-calc-shares" data-entry="${entry}" data-stop="${stop}">-</span> 株
+            <span style="color: var(--text-sub); font-size: 0.72rem;">(<span class="table-calc-amount">-</span>万)</span>
+          </td>
+          <td>
+            <div style="display: flex; gap: 3px; flex-wrap: wrap; max-width: 240px;">
+              <span class="pill pill-rs">RS:+${rs}%</span>
+              ${stock.is_vcp ? `<span class="pill pill-vcp">VCP</span>` : ''}
+              ${stock.is_clean_margin ? `<span class="pill pill-clean-margin">需給クリーン</span>` : ''}
+              ${stock.is_stage2 ? `<span class="pill pill-stage2">Stage2</span>` : ''}
+            </div>
+          </td>
+          <td>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" class="btn-link" style="padding: 2px 5px; font-size: 0.72rem;" onclick="toggleMemo('${stock.code}')">📝</button>
+              <a class="btn-link" style="padding: 2px 5px; font-size: 0.72rem;" href="https://kabutan.jp/stock/chart?code=${stock.code}" target="_blank">📊 株探</a>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     function initArchiveSwitcher() {
       const select = document.getElementById("archiveSelect");
       if (!select) return;
 
       const initialContainerHtml = document.getElementById("cardsContainer").innerHTML;
+      const initialTableHtml = document.getElementById("tableBody") ? document.getElementById("tableBody").innerHTML : "";
       const historyDataEl = document.getElementById("historyData");
       let historyMap = {};
       if (historyDataEl && historyDataEl.textContent.trim()) {
@@ -1281,32 +1672,38 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       select.addEventListener("change", (e) => {
         const chosenDate = e.target.value;
         const container = document.getElementById("cardsContainer");
+        const tableBody = document.getElementById("tableBody");
         const headerGenAt = document.getElementById("headerGeneratedAt");
         const headerPool = document.getElementById("headerPoolSize");
 
         if (select.selectedIndex === 0) {
-          container.innerHTML = initialContainerHtml;
+          if (container) container.innerHTML = initialContainerHtml;
+          if (tableBody) tableBody.innerHTML = initialTableHtml;
           updatePositionSizes();
           updateStarUI();
           loadAllMemos();
-          sortCards();
+          sortAllViews();
           return;
         }
 
         const list = historyMap[chosenDate];
         if (list && list.length > 0) {
-          container.innerHTML = list.map(renderStockCard).join("");
+          if (container) container.innerHTML = list.map(renderStockCard).join("");
+          if (tableBody) tableBody.innerHTML = list.map(renderStockRow).join("");
           if (headerGenAt) headerGenAt.textContent = `${chosenDate} (アーカイブ)`;
           if (headerPool) headerPool.textContent = `${list.length}件`;
           updatePositionSizes();
           updateStarUI();
           loadAllMemos();
-          sortCards();
+          sortAllViews();
         }
       });
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+      loadPrivacyMode();
+      loadUserCapital();
+      loadViewMode();
       updatePositionSizes();
       updateStarUI();
       loadAllMemos();
