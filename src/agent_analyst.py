@@ -19,7 +19,7 @@ OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
 OUTPUT_HTML_PATH = os.path.join(OUTPUT_HTML_DIR, "index.html")
 
 MAX_AI_ANALYZE = 40
-MAX_CONSECUTIVE_FAILURES = 3
+MAX_TRANSIENT_ERRORS = 2
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="ja">
@@ -283,24 +283,13 @@ def clean_and_parse_json(text):
     except Exception:
         return None
 
-def check_api_health(client):
-    """実行前にAPI疎通を確認する安全テスト（Pingテスト）"""
-    print("[INFO] Gemini API 疎通テスト中...")
-    try:
-        res = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents="ping",
-        )
-        if res and res.text:
-            print("[INFO] Gemini API 疎通確認完了（正常稼働中）")
-            return True
-    except Exception as e:
-        print(f"[CRITICAL ERROR] Gemini API疎通テスト失敗: {e}")
-        return False
-    return False
-
 def analyze_stock_with_gemini(client, stock_info):
-    """Gemini 3.6-flash を使用したテンバガー潜在力分析（安定・高速版）"""
+    """
+    戻り値: (結果辞書, 状態コード)
+      "SUCCESS"     : 正常取得
+      "FATAL_ERROR" : 429クォータ超過・認証エラー（即時全停止）
+      "RETRY_ERROR" : 一時的な通信障害等
+    """
     prompt = f"""
 あなたは急成長小型株（テンバガー）投資のスペシャリストです。
 以下の企業スペックとモメンタム指標に基づき、この銘柄の成長性、テーマ合致度、および売買プランを策定してください。
@@ -334,38 +323,32 @@ def analyze_stock_with_gemini(client, stock_info):
   "risk_reward_ratio": 3.2
 }}
 """
-    for attempt in range(2):
-        try:
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=prompt,
-                config={
-                    "response_mime_type": "application/json"
-                }
-            )
-            res_json = clean_and_parse_json(response.text)
-            if res_json and "score" in res_json and "growth_story" in res_json:
-                if "theme_tags" not in res_json or not res_json["theme_tags"]:
-                    res_json["theme_tags"] = [stock_info["sector"]]
-                if "risk_reward_ratio" not in res_json:
-                    res_json["risk_reward_ratio"] = 3.0
-                return res_json, True
-        except Exception as e:
-            print(f"[WARN] Gemini分析 試行 {attempt + 1}/2 失敗 ({stock_info['code']}): {e}")
-            time.sleep(1)
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json"
+            }
+        )
+        res_json = clean_and_parse_json(response.text)
+        if res_json and "score" in res_json and "growth_story" in res_json:
+            if "theme_tags" not in res_json or not res_json["theme_tags"]:
+                res_json["theme_tags"] = [stock_info["sector"]]
+            if "risk_reward_ratio" not in res_json:
+                res_json["risk_reward_ratio"] = 3.0
+            return res_json, "SUCCESS"
+    except Exception as e:
+        err_msg = str(e).upper()
+        print(f"[WARN] Gemini分析エラー ({stock_info['code']}): {e}")
+        
+        # 認証切れ・クォータ枯渇は再試行せず即死判定
+        fatal_keywords = ["429", "RESOURCE_EXHAUSTED", "QUOTA", "401", "403", "UNAUTHORIZED", "PERMISSION"]
+        if any(kw in err_msg for kw in fatal_keywords):
+            return None, "FATAL_ERROR"
+        return None, "RETRY_ERROR"
 
-    # 失敗時のフォールバック値
-    stop = round(float(stock_info['close']) * 0.92, 1)
-    fallback_data = {
-        "score": 75,
-        "theme_tags": [stock_info["sector"]],
-        "growth_story": f"{stock_info['name']}は直近売上高成長率+{stock_info.get('rev_growth_pct', 0)}%、出来高急増比{stock_info.get('vol_surge', 1.0)}倍と強いモメンタムを維持。独自事業の進捗が注目点。",
-        "risk_factors": "新興小型株特有の流動性低下および相場地合いの調整リスク。",
-        "entry_price": stock_info['close'],
-        "stop_loss": stop,
-        "risk_reward_ratio": 3.0
-    }
-    return fallback_data, False
+    return None, "RETRY_ERROR"
 
 def main():
     print(f"[INFO] 候補ファイル確認: {CANDIDATES_FILE}")
@@ -391,29 +374,40 @@ def main():
 
     client = genai.Client(api_key=api_key)
 
-    # サーキットブレーカー1: 初回導通確認
-    if not check_api_health(client):
-        print("[FATAL] API疎通が確認できないため、後続処理およびLINE通知を安全に緊急停止します。")
-        sys.exit(1)
-
     analyzed_stocks = []
-    consecutive_failures = 0
+    consecutive_transient_errors = 0
     print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析を開始...")
 
     for item in candidates:
         print(f"  -> 分析中: {item['code']} {item['name']}")
-        analysis, success = analyze_stock_with_gemini(client, item)
+        analysis, status = analyze_stock_with_gemini(client, item)
         
-        if success:
-            consecutive_failures = 0
-        else:
-            consecutive_failures += 1
-            print(f"[WARN] 連続失敗カウント: {consecutive_failures}/{MAX_CONSECUTIVE_FAILURES}")
-
-        # サーキットブレーカー2: 連続失敗による緊急遮断
-        if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-            print(f"[FATAL] APIエラーが {consecutive_failures} 銘柄連続で発生しました。異常と判断し後続処理を緊急停止します。")
+        # サーキットブレーカー1: 致命的エラー（429クォータ・401認証等）は1回で即時全停止
+        if status == "FATAL_ERROR":
+            print("[FATAL] クォータ枯渇または認証エラーを検知しました。API保護のため即座にパイプラインを遮断します。")
             sys.exit(1)
+
+        # サーキットブレーカー2: 一時エラーが2連続した場合は即座に安全遮断
+        if status == "RETRY_ERROR":
+            consecutive_transient_errors += 1
+            print(f"[WARN] 一時的APIエラーを検知 (連続 {consecutive_transient_errors}/{MAX_TRANSIENT_ERRORS})")
+            if consecutive_transient_errors >= MAX_TRANSIENT_ERRORS:
+                print(f"[FATAL] API障害と判断し、後続処理を緊急停止します。")
+                sys.exit(1)
+            
+            # 単発の偶発エラーのみテクニカル補完して継続
+            stop = round(float(item['close']) * 0.92, 1)
+            analysis = {
+                "score": 75,
+                "theme_tags": [item["sector"]],
+                "growth_story": f"{item['name']}は直近売上高成長率+{item.get('rev_growth_pct', 0)}%、出来高急増比{item.get('vol_surge', 1.0)}倍と強いモメンタムを維持。",
+                "risk_factors": "一時的な通信エラーのためテクニカル算定値を暫定表示。",
+                "entry_price": item['close'],
+                "stop_loss": stop,
+                "risk_reward_ratio": 3.0
+            }
+        else:
+            consecutive_transient_errors = 0
 
         item['analysis'] = analysis
         analyzed_stocks.append(item)
