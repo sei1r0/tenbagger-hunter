@@ -4,12 +4,11 @@ import requests
 LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push"
 
 def send_notification(title, message):
-    """テキスト形式による通知（フォールバック用）"""
+    """テキスト通知（フォールバック用）"""
     token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
     user_id = os.getenv("LINE_USER_ID")
 
     if not token or not user_id:
-        print("[WARN] LINE通知用の環境変数が設定されていません。通知をスキップします。")
         return
 
     headers = {
@@ -19,25 +18,71 @@ def send_notification(title, message):
 
     payload = {
         "to": user_id,
-        "messages": [
-            {
-                "type": "text",
-                "text": f"【{title}】\n\n{message}"
-            }
-        ]
+        "messages": [{"type": "text", "text": f"【{title}】\n\n{message}"}]
     }
 
     try:
-        res = requests.post(LINE_PUSH_URL, headers=headers, json=payload, timeout=15)
-        if res.status_code == 200:
-            print("[INFO] LINE通知（テキスト）が正常に送信されました。")
-        else:
-            print(f"[WARN] LINE通知送信失敗 (Status: {res.status_code}): {res.text}")
+        requests.post(LINE_PUSH_URL, headers=headers, json=payload, timeout=15)
     except Exception as e:
         print(f"[ERROR] LINE通知送信例外: {e}")
 
-def send_flex_carousel(title, top_stocks, pages_url):
-    """上位銘柄をカード型カルーセル（Flex Message）で配信"""
+def create_market_bubble(market_data):
+    """主要5指数の一覧を表示する専用Flexバブルを作成"""
+    rows = []
+    for item in market_data:
+        w_sign = "+" if item["week_diff"] > 0 else ""
+        y_sign = "+" if item["ytd_diff"] > 0 else ""
+        w_color = "#10b981" if item["week_diff"] >= 0 else "#ef4444"
+        y_color = "#10b981" if item["ytd_diff"] >= 0 else "#ef4444"
+
+        row = {
+            "type": "box",
+            "layout": "vertical",
+            "margin": "md",
+            "contents": [
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {"type": "text", "text": item["name"], "weight": "bold", "size": "xs", "color": "#f8fafc", "flex": 3},
+                        {"type": "text", "text": item["current_str"], "weight": "bold", "size": "xs", "color": "#ffffff", "align": "end", "flex": 4}
+                    ]
+                },
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "contents": [
+                        {"type": "text", "text": f"週: {w_sign}{item['week_diff_str']} ({w_sign}{item['week_pct']}%)", "size": "xxs", "color": w_color, "flex": 1},
+                        {"type": "text", "text": f"年初: {y_sign}{item['ytd_diff_str']} ({y_sign}{item['ytd_pct']}%)", "size": "xxs", "color": y_color, "align": "end", "flex": 1}
+                    ]
+                }
+            ]
+        }
+        rows.append(row)
+
+    return {
+        "type": "bubble",
+        "size": "kilo",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#1e293b",
+            "paddingAll": "12px",
+            "contents": [
+                {"type": "text", "text": "📊 マクロ指標サマリー", "color": "#38bdf8", "weight": "bold", "size": "sm"},
+                {"type": "text", "text": "週差 ＆ 年初来パフォーマンス", "color": "#94a3b8", "size": "xxs", "margin": "xs"}
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "paddingAll": "12px",
+            "contents": rows
+        }
+    }
+
+def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
+    """指数カード ＋ 上位銘柄カードのカルーセルを配信"""
     token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
     user_id = os.getenv("LINE_USER_ID")
 
@@ -45,22 +90,17 @@ def send_flex_carousel(title, top_stocks, pages_url):
         print("[WARN] LINE通知用の環境変数が設定されていません。通知をスキップします。")
         return
 
-    # 候補が0件の場合はテキスト通知で安全に案内
-    if not top_stocks:
-        print("[INFO] 候補銘柄が0件のため、通常テキスト通知に切り替えます。")
-        send_notification(
-            title,
-            f"今週は抽出条件に合致する銘柄がありませんでした。\n\nWebダッシュボード:\n{pages_url}"
-        )
-        return
-
     bubbles = []
-    for idx, s in enumerate(top_stocks, 1):
+
+    # 1枚目: マーケット指数サマリーカード（データが存在する場合）
+    if market_data:
+        bubbles.append(create_market_bubble(market_data))
+
+    # 2枚目以降: 厳選個別株カード（最大4銘柄）
+    for idx, s in enumerate(top_stocks[:4], 1):
         a = s.get("analysis", {})
         tags = " / ".join(a.get("theme_tags", [s.get("sector", "注目株")]))
-        
-        # LINE Flex Message 容量制限（400エラー）を防ぐ文字数制限ガード
-        growth_story = a.get("growth_story", "最新チャートと出来高動向をチェックしてください。")
+        growth_story = a.get("growth_story", "チャート動向をチェックしてください。")
         if len(growth_story) > 120:
             growth_story = growth_story[:117] + "..."
 
@@ -73,28 +113,9 @@ def send_flex_carousel(title, top_stocks, pages_url):
                 "backgroundColor": "#0f172a",
                 "paddingAll": "12px",
                 "contents": [
-                    {
-                        "type": "text",
-                        "text": f"第{idx}位  ★スコア {a.get('score', '-')}点",
-                        "color": "#10b981",
-                        "weight": "bold",
-                        "size": "sm"
-                    },
-                    {
-                        "type": "text",
-                        "text": f"{s.get('code', '')} {s.get('name', '')}",
-                        "color": "#ffffff",
-                        "weight": "bold",
-                        "size": "md",
-                        "wrap": True
-                    },
-                    {
-                        "type": "text",
-                        "text": tags,
-                        "color": "#38bdf8",
-                        "size": "xxs",
-                        "margin": "xs"
-                    }
+                    {"type": "text", "text": f"第{idx}位  ★スコア {a.get('score', '-')}点", "color": "#10b981", "weight": "bold", "size": "sm"},
+                    {"type": "text", "text": f"{s.get('code', '')} {s.get('name', '')}", "color": "#ffffff", "weight": "bold", "size": "md", "wrap": True},
+                    {"type": "text", "text": tags, "color": "#38bdf8", "size": "xxs", "margin": "xs"}
                 ]
             },
             "body": {
@@ -128,10 +149,7 @@ def send_flex_carousel(title, top_stocks, pages_url):
                             {"type": "text", "text": f"{a.get('stop_loss', '-')}円", "size": "xs", "color": "#ef4444", "weight": "bold", "align": "end"}
                         ]
                     },
-                    {
-                        "type": "separator",
-                        "margin": "md"
-                    },
+                    {"type": "separator", "margin": "md"},
                     {
                         "type": "text",
                         "text": growth_story,
@@ -164,7 +182,7 @@ def send_flex_carousel(title, top_stocks, pages_url):
 
     flex_contents = {
         "type": "carousel",
-        "contents": bubbles[:5]
+        "contents": bubbles
     }
 
     headers = {
@@ -177,11 +195,11 @@ def send_flex_carousel(title, top_stocks, pages_url):
         "messages": [
             {
                 "type": "text",
-                "text": f"🎯【{title}】\n今週の厳選候補カードです。\n全銘柄はダッシュボードへ:\n{pages_url}"
+                "text": f"🎯【{title}】\n主要指数サマリーおよび今週の厳選候補カードです。\n全20銘柄はWebダッシュボードへ:\n{pages_url}"
             },
             {
                 "type": "flex",
-                "altText": "今週のテンバガー厳選候補カード",
+                "altText": "今週のマーケット指数＆厳選候補カード",
                 "contents": flex_contents
             }
         ]
@@ -190,10 +208,10 @@ def send_flex_carousel(title, top_stocks, pages_url):
     try:
         res = requests.post(LINE_PUSH_URL, headers=headers, json=payload, timeout=15)
         if res.status_code == 200:
-            print("[INFO] LINE Flex Message カル―セル送信に成功しました。")
+            print("[INFO] LINE Flex Message（指数＋銘柄）送信成功。")
         else:
-            print(f"[WARN] Flex送信失敗 (Status: {res.status_code}): {res.text}。テキスト通知へフォールバックします。")
+            print(f"[WARN] Flex送信失敗 (Status: {res.status_code}): {res.text}")
             send_notification(title, f"詳細レポートはこちら:\n{pages_url}")
     except Exception as e:
-        print(f"[ERROR] Flex Message 送信例外: {e}。テキスト通知へフォールバックします。")
+        print(f"[ERROR] Flex送信例外: {e}")
         send_notification(title, f"詳細レポートはこちら:\n{pages_url}")

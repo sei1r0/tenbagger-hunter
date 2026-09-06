@@ -14,6 +14,7 @@ from google import genai
 from google.genai import types
 from jinja2 import Template
 from src.utils.notifier import send_flex_carousel
+from src.utils.market_overview import fetch_market_indices
 
 CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
@@ -50,7 +51,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     header { border-bottom: 1px solid var(--border); padding-bottom: 1.2rem; margin-bottom: 1.5rem; }
     h1 { margin: 0 0 0.4rem 0; font-size: 1.6rem; display: flex; align-items: center; gap: 0.5rem; }
     .updated { color: var(--text-sub); font-size: 0.85rem; }
-    
+
+    /* 主要指数パネル */
+    .market-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+    .market-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+    .market-title { font-size: 0.85rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 0.2rem; }
+    .market-val { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.3rem; }
+    .market-change { font-size: 0.75rem; }
+    .pos { color: var(--accent-green); }
+    .neg { color: var(--accent-red); }
+
+    /* コントロールバー */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -70,7 +91,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       border-radius: 6px;
       font-size: 0.9rem;
     }
-    
+
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -93,7 +114,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .badge-new { background: #f59e0b; color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
     .tags { display: flex; gap: 0.35rem; margin-top: 0.25rem; }
     .tag { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
-    
+
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
       color: var(--accent-green);
@@ -104,7 +125,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       border: 1px solid var(--accent-green);
       text-align: center;
     }
-    
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -114,7 +135,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .stat-item { background: rgba(0, 0, 0, 0.25); padding: 0.5rem 0.75rem; border-radius: 6px; }
     .stat-label { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 0.2rem; }
     .stat-val { font-size: 1rem; font-weight: bold; }
-    
+
     .catalyst-box {
       background: rgba(56, 189, 248, 0.05);
       border-left: 3px solid var(--accent-blue);
@@ -123,7 +144,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       font-size: 0.92rem;
       line-height: 1.6;
     }
-    
+
     .plan-box {
       display: flex;
       justify-content: space-between;
@@ -152,8 +173,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="container">
     <header>
       <h1>🎯 Tenbagger Hunter Pro 厳選レポート</h1>
-      <div class="updated">生成日時: {{ generated_at }} | 分析銘柄数: {{ total_screened }}件</div>
+      <div class="updated">生成日時: {{ generated_at }} | 厳選銘柄数: {{ total_screened }}件</div>
     </header>
+
+    <!-- 主要指数パネル -->
+    <div class="market-panel">
+      {% for m in market_indices %}
+      <div class="market-card">
+        <div class="market-title">{{ m.name }}</div>
+        <div class="market-val">{{ m.current_str }}</div>
+        <div class="market-change">
+          <div>週差: <span class="{% if m.week_diff >= 0 %}pos{% else %}neg{% endif %}">{% if m.week_diff > 0 %}+{% endif %}{{ m.week_diff_str }} ({% if m.week_diff > 0 %}+{% endif %}{{ m.week_pct }}%)</span></div>
+          <div>年初: <span class="{% if m.ytd_diff >= 0 %}pos{% else %}neg{% endif %}">{% if m.ytd_diff > 0 %}+{% endif %}{{ m.ytd_diff_str }} ({% if m.ytd_diff > 0 %}+{% endif %}{{ m.ytd_pct }}%)</span></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
 
     <div class="controls">
       <div>
@@ -284,12 +319,6 @@ def clean_and_parse_json(text):
         return None
 
 def analyze_stock_with_gemini(client, stock_info):
-    """
-    戻り値: (結果辞書, 状態コード)
-      "SUCCESS"     : 正常取得
-      "FATAL_ERROR" : 429クォータ超過・401/403認証エラー（即時全停止）
-      "RETRY_ERROR" : 一時的な通信障害等
-    """
     prompt = f"""
 あなたは急成長小型株（テンバガー）投資のスペシャリストです。
 以下の企業スペックとモメンタム指標に基づき、この銘柄の成長性、テーマ合致度、および売買プランを策定してください。
@@ -327,9 +356,7 @@ def analyze_stock_with_gemini(client, stock_info):
         response = client.models.generate_content(
             model="gemini-3.6-flash",
             contents=prompt,
-            config={
-                "response_mime_type": "application/json"
-            }
+            config={"response_mime_type": "application/json"}
         )
         res_json = clean_and_parse_json(response.text)
         if res_json and "score" in res_json and "growth_story" in res_json:
@@ -341,8 +368,6 @@ def analyze_stock_with_gemini(client, stock_info):
     except Exception as e:
         err_msg = str(e).upper()
         print(f"[WARN] Gemini分析エラー ({stock_info['code']}): {e}")
-        
-        # 認証切れ・クォータ枯渇は再試行せず即死判定
         fatal_keywords = ["429", "RESOURCE_EXHAUSTED", "QUOTA", "401", "403", "UNAUTHORIZED", "PERMISSION"]
         if any(kw in err_msg for kw in fatal_keywords):
             return None, "FATAL_ERROR"
@@ -367,12 +392,15 @@ def main():
     if len(candidates) > MAX_AI_ANALYZE:
         candidates = candidates[:MAX_AI_ANALYZE]
 
+    # 指数データの取得
+    print("[INFO] 主要マクロ指数のパフォーマンスを取得中...")
+    market_indices = fetch_market_indices()
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print("[CRITICAL ERROR] GEMINI_API_KEY が設定されていません。処理を中断します。")
+        print("[CRITICAL ERROR] GEMINI_API_KEY が設定されていません。")
         sys.exit(1)
 
-    # HTTPタイムアウト（15秒）を設定してソケット無応答による永久ハングを防止
     client = genai.Client(
         api_key=api_key,
         http_options=types.HttpOptions(timeout=15000)
@@ -386,25 +414,22 @@ def main():
         print(f"  -> 分析中: {item['code']} {item['name']}")
         analysis, status = analyze_stock_with_gemini(client, item)
         
-        # サーキットブレーカー1: 致命的エラー（429クォータ・401認証等）は1回で即時全停止
         if status == "FATAL_ERROR":
-            print("[FATAL] クォータ枯渇または認証エラーを検知しました。API保護のため即座にパイプラインを遮断します。")
+            print("[FATAL] クォータ枯渇または認証エラーを検知。緊急遮断します。")
             sys.exit(1)
 
-        # サーキットブレーカー2: 一時エラーが2連続した場合は即座に安全遮断
         if status == "RETRY_ERROR":
             consecutive_transient_errors += 1
-            print(f"[WARN] 一時的APIエラーを検知 (連続 {consecutive_transient_errors}/{MAX_TRANSIENT_ERRORS})")
+            print(f"[WARN] 一時的APIエラー (連続 {consecutive_transient_errors}/{MAX_TRANSIENT_ERRORS})")
             if consecutive_transient_errors >= MAX_TRANSIENT_ERRORS:
-                print(f"[FATAL] API障害と判断し、後続処理を緊急停止します。")
+                print("[FATAL] 連続API障害のため緊急遮断します。")
                 sys.exit(1)
             
-            # 単発の偶発エラーのみテクニカル補完して継続
             stop = round(float(item['close']) * 0.92, 1)
             analysis = {
                 "score": 75,
                 "theme_tags": [item["sector"]],
-                "growth_story": f"{item['name']}は直近売上高成長率+{item.get('rev_growth_pct', 0)}%、出来高急増比{item.get('vol_surge', 1.0)}倍と強いモメンタムを維持。",
+                "growth_story": f"{item['name']}はモメンタムと出来高水準を維持。独自事業の進捗が注目点。",
                 "risk_factors": "一時的な通信エラーのためテクニカル算定値を暫定表示。",
                 "entry_price": item['close'],
                 "stop_loss": stop,
@@ -426,7 +451,8 @@ def main():
     html_output = template.render(
         generated_at=now_str,
         total_screened=len(candidates),
-        analyzed_stocks=analyzed_stocks
+        analyzed_stocks=analyzed_stocks,
+        market_indices=market_indices
     )
 
     with open(OUTPUT_HTML_PATH, "w", encoding="utf-8") as f:
@@ -435,11 +461,11 @@ def main():
     file_size = os.path.getsize(OUTPUT_HTML_PATH)
     print(f"[INFO] レポート出力完了: {OUTPUT_HTML_PATH} ({file_size} bytes)")
 
-    # LINE Flex Message 送信
+    # LINE Flex Message 送信（指数カード ＋ 厳選個別株）
     repo_name = os.getenv("GITHUB_REPOSITORY", "sei1r0/tenbagger-hunter")
     pages_url = f"https://{repo_name.split('/')[0]}.github.io/{repo_name.split('/')[1]}/"
 
-    send_flex_carousel("週末テンバガー厳選TOP銘柄", analyzed_stocks[:5], pages_url)
+    send_flex_carousel("週末マーケット＆テンバガー厳選TOP", analyzed_stocks, pages_url, market_data=market_indices)
     print("[INFO] 全パイプライン処理が正常に完了しました。")
 
 if __name__ == "__main__":
