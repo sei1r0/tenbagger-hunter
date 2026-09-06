@@ -1,5 +1,5 @@
 yfinance>=0.2.36
-pandas>=2.2.0
+pandas>=3.0.5
 google-genai>=0.1.1
 jpholiday>=0.1.8
 holidays>=0.41
