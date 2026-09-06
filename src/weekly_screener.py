@@ -106,6 +106,9 @@ def run_batch_screener():
             print(f"[WARN] バッチ取得エラー: {e}")
             continue
 
+        if data is None or data.empty:
+            continue
+
         for ticker_symbol in batch_tickers:
             row_meta = stock_dict[ticker_symbol]
             try:

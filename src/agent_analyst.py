@@ -15,6 +15,7 @@ from google.genai import types
 from jinja2 import Template
 from src.utils.notifier import send_flex_carousel
 from src.utils.market_overview import fetch_market_indices
+from src.utils.market_calendar import get_jst_now
 
 CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
@@ -408,6 +409,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 def clean_and_parse_json(text):
     try:
+        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
         cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
         cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
         return json.loads(cleaned)
@@ -572,7 +576,7 @@ def main():
     # HTML出力
     os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
     template = Template(HTML_TEMPLATE, autoescape=True)
-    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    now_str = get_jst_now().strftime("%Y-%m-%d %H:%M JST")
     html_output = template.render(
         generated_at=now_str,
         total_screened=len(candidates),
