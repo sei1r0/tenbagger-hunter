@@ -32,7 +32,7 @@ def main():
         print("[ERROR] GEMINI_API_KEY が設定されていません。")
         sys.exit(1)
 
-    # 新SDK Clientの初期化
+    # Clientの初期化
     client = genai.Client(api_key=api_key)
 
     # 2. 米国市場休場フラグの確認
@@ -40,7 +40,7 @@ def main():
 
     # 3. 主要マクロデータの取得
     symbols = {
-        "Nasdaq": "^IXIC",
+        "Nasdaq100": "^NDX",
         "S&P500": "^GSPC",
         "Russell2000": "^RUT",
         "US_10Y_Yield": "^TNX",
@@ -93,9 +93,11 @@ def main():
     status = res_json.get("status", "YELLOW")
     status_emoji = {"GREEN": "🟢 リスクオン（買付可）", "YELLOW": "🟡 警戒（ロット半減）", "RED": "🔴 リスクオフ（新規買停止）"}
     
-    nasdaq_pct = market_snapshot['Nasdaq']['pct_change']
+    ndx_pct = market_snapshot['Nasdaq100']['pct_change']
+    sp500_pct = market_snapshot['S&P500']['pct_change']
     russell_pct = market_snapshot['Russell2000']['pct_change']
-    nasdaq_sign = "+" if nasdaq_pct > 0 else ""
+    ndx_sign = "+" if ndx_pct > 0 else ""
+    sp500_sign = "+" if sp500_pct > 0 else ""
     russell_sign = "+" if russell_pct > 0 else ""
 
     body = (
@@ -103,7 +105,8 @@ def main():
         f"理由: {res_json.get('reason')}\n"
         f"方針: {res_json.get('action_guideline')}\n\n"
         f"主要データ（前日比・水準）:\n"
-        f"・🇺🇸 Nasdaq (米ハイテク): {nasdaq_sign}{nasdaq_pct}%\n"
+        f"・💻 ナスダック100: {ndx_sign}{ndx_pct}%\n"
+        f"・🇺🇸 S&P500: {sp500_sign}{sp500_pct}%\n"
         f"・🇺🇸 ラッセル2000 (米中小型株): {russell_sign}{russell_pct}%\n"
         f"・🏛️ 米10年国債利回り: {market_snapshot['US_10Y_Yield']['close']}%\n"
         f"・💴 ドル円為替: {market_snapshot['USD_JPY']['close']}円"

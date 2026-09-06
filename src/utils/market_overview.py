@@ -12,6 +12,15 @@ TARGET_INDICES = [
         "icon": "🇺🇸"
     },
     {
+        "name": "ナスダック100",
+        "desc": "米ハイテク主要100社 (^NDX)",
+        "ticker": "^NDX",
+        "unit": "pt",
+        "prefix": "",
+        "format": "{:,.1f}",
+        "icon": "💻"
+    },
+    {
         "name": "FANG+",
         "desc": "米メガテック10社 (ETF:FNGS)",
         "ticker": "FNGS",
