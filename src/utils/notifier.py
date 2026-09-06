@@ -3,7 +3,7 @@ import requests
 
 LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push"
 
-def send_notification(title, message):
+def send_notification(title, message, color_level=None):
     """テキスト通知（フォールバック用）"""
     token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
     user_id = os.getenv("LINE_USER_ID")

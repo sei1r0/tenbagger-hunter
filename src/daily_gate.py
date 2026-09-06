@@ -37,26 +37,26 @@ def fetch_market_data(ticker_symbol: str, retries=3):
     return {"close": None, "pct_change": 0.0}
 
 def check_watchlist_action_triggers():
-    """週末厳選20銘柄の最新株価をリアルタイム取得し、本日のエントリー・警戒シグナルを抽出"""
+    """週末厳選20銘柄の最新株価・移動平均をリアルタイム取得し、エントリー機会および下降トレンド・手仕舞い警告を抽出"""
     if not os.path.exists(CANDIDATES_FILE):
-        return []
+        return [], []
 
     try:
         with open(CANDIDATES_FILE, "r", encoding="utf-8") as f:
             candidates = json.load(f)
     except Exception:
-        return []
+        return [], []
 
     if not candidates:
-        return []
+        return [], []
 
     top_candidates = candidates[:10]
     tickers = [f"{s['code']}.T" for s in top_candidates if "code" in s]
 
-    # 直近の最新日足株価を取得（平日毎朝の最新終値）
-    latest_prices = {}
+    # 直近1ヶ月の日足株価を取得（最新終値、5MA、25MA、デッドクロス判定用）
+    latest_data = {}
     try:
-        data = yf.download(tickers=tickers, period="5d", interval="1d", group_by="ticker", auto_adjust=True, progress=False)
+        data = yf.download(tickers=tickers, period="1mo", interval="1d", group_by="ticker", auto_adjust=True, progress=False)
         for s in top_candidates:
             sym = f"{s['code']}.T"
             try:
@@ -64,50 +64,92 @@ def check_watchlist_action_triggers():
                     df = data.dropna()
                 else:
                     df = data[sym].dropna()
-                if not df.empty:
-                    latest_prices[s['code']] = float(df['Close'].iloc[-1])
+                if not df.empty and len(df) >= 5:
+                    closes = df["Close"]
+                    sma5_series = closes.rolling(window=5).mean()
+                    sma25_series = closes.rolling(window=min(25, len(closes))).mean()
+
+                    curr_p = float(closes.iloc[-1])
+                    sma5_val = float(sma5_series.iloc[-1])
+                    sma25_val = float(sma25_series.iloc[-1])
+
+                    # デッドクロス検知 (直近3日以内に 5MA が 25MA を下抜け)
+                    is_dc = False
+                    if len(closes) >= 10:
+                        diff = sma5_series - sma25_series
+                        if diff.iloc[-1] < 0 and (diff.iloc[-4:] >= 0).any():
+                            is_dc = True
+
+                    latest_data[s['code']] = {
+                        "price": curr_p,
+                        "sma5": sma5_val,
+                        "sma25": sma25_val,
+                        "is_dc": is_dc
+                    }
             except Exception:
                 pass
     except Exception as e:
         print(f"[WARN] リアルタイム監視株価の取得スキップ: {e}")
 
-    action_alerts = []
+    risk_alerts = []
+    entry_alerts = []
 
     for s in top_candidates:
         code = s.get("code")
         name = s.get("name")
-        curr_price = latest_prices.get(code, float(s.get("close", 0)))
+        stock_item = latest_data.get(code, {})
+        curr_price = stock_item.get("price", float(s.get("close", 0)))
+        sma25 = stock_item.get("sma25", float(s.get("sma25", 0)))
+        is_dc = stock_item.get("is_dc", False)
+
         analysis = s.get("analysis", {})
         tier = analysis.get("conviction_tier", "A")
         tier_icon = "👑" if tier == "S" else ("⭐" if tier == "A" else "📌")
 
         entry_price = float(analysis.get("entry_price", 0))
         stop_loss = float(analysis.get("stop_loss", 0))
-        sma25 = float(s.get("sma25", 0))
         is_vcp = s.get("is_vcp", False)
 
-        # 1. 買値目安（押し目・ブレイク）接近トリガー (目安価格の ±2.5% 以内)
-        if entry_price > 0 and abs(curr_price - entry_price) / entry_price <= 0.025:
-            action_alerts.append(
-                f"🎯 買値圏: {tier_icon}{code} {name} (現在:{curr_price}円 / 目安:{entry_price}円)"
+        # --- 1. 下降トレンド転落・手仕舞い・リスク警戒 ---
+        # A. 損切りライン到達（即時撤退）
+        if stop_loss > 0 and curr_price <= stop_loss:
+            risk_alerts.append(
+                f"🚨 損切執行: {code} {name} (現在:{curr_price}円 <= 損切:{stop_loss}円 即時撤退)"
             )
-        # 2. 25日線タッチ・押し目反発ゾーン (25MAの +0.5%〜+2.5%)
-        elif sma25 > 0 and 0.005 <= (curr_price - sma25) / sma25 <= 0.025:
-            action_alerts.append(
-                f"📈 25MA押し目: {tier_icon}{code} {name} (現在:{curr_price}円 / 25MA:{sma25}円)"
-            )
-        # 3. VCP売り枯れ初動トリガー
-        elif is_vcp:
-            action_alerts.append(
-                f"🔥 VCP初動: {tier_icon}{code} {name} (RS:+{s.get('rs_rating',0)}% / {curr_price}円)"
-            )
-        # 4. 損切り警戒トリガー (損切りラインから +2% 未満に接近)
+        # B. 損切りライン接近 (+2%以内)
         elif stop_loss > 0 and curr_price <= (stop_loss * 1.02):
-            action_alerts.append(
-                f"⚠️ 損切警戒: {code} {name} (現在:{curr_price}円 / 損切:{stop_loss}円)"
+            risk_alerts.append(
+                f"⚠️ 損切警戒: {code} {name} (現在:{curr_price}円 / 損切:{stop_loss}円に接近)"
+            )
+        # C. 25日線サポート割れ (明確な下降転落)
+        elif sma25 > 0 and curr_price < (sma25 * 0.985):
+            risk_alerts.append(
+                f"📉 25MA割れ: {code} {name} (現在:{curr_price}円 < 25MA:{sma25}円 下降転落)"
+            )
+        # D. デッドクロス点灯 (5MA x 25MA)
+        elif is_dc:
+            risk_alerts.append(
+                f"💀 デッドクロス: {code} {name} (5MA×25MA下抜け・短期利確推奨)"
             )
 
-    return action_alerts
+        # --- 2. 買い・押し目エントリー機会 ---
+        # A. 買値目安（押し目・ブレイク）接近 (目安価格の ±2.5% 以内)
+        if entry_price > 0 and abs(curr_price - entry_price) / entry_price <= 0.025:
+            entry_alerts.append(
+                f"🎯 買値圏: {tier_icon}{code} {name} (現在:{curr_price}円 / 目安:{entry_price}円)"
+            )
+        # B. 25日線タッチ・押し目反発ゾーン (25MAの +0.5%〜+2.5%)
+        elif sma25 > 0 and 0.005 <= (curr_price - sma25) / sma25 <= 0.025:
+            entry_alerts.append(
+                f"📈 25MA押し目: {tier_icon}{code} {name} (現在:{curr_price}円 / 25MA:{sma25}円)"
+            )
+        # C. VCP売り枯れ初動トリガー
+        elif is_vcp:
+            entry_alerts.append(
+                f"🔥 VCP初動: {tier_icon}{code} {name} (RS:+{s.get('rs_rating',0)}% / {curr_price}円)"
+            )
+
+    return risk_alerts, entry_alerts
 
 def main():
     # 1. 日本市場の開場判定
@@ -181,8 +223,8 @@ def main():
             "action_guideline": "新規指値は控えめに設定してください。"
         }
 
-    # 5. ウォッチリストのトリガー判定
-    watchlist_alerts = check_watchlist_action_triggers()
+    # 5. ウォッチリストのトリガー判定（買い機会 ＆ 下降・手仕舞い警告）
+    risk_alerts, entry_alerts = check_watchlist_action_triggers()
 
     # 6. 結果の通知送信
     status = res_json.get("status", "YELLOW")
@@ -207,8 +249,14 @@ def main():
         f"・💴 ドル円為替: {market_snapshot['USD_JPY']['close']}円"
     )
 
-    if watchlist_alerts:
-        body += "\n\n【🎯 本日の厳選監視アクション】\n" + "\n".join(watchlist_alerts[:5])
+    action_sections = []
+    if risk_alerts:
+        action_sections.append("【⚠️ 厳重警戒・手仕舞いシグナル】\n" + "\n".join(risk_alerts[:4]))
+    if entry_alerts:
+        action_sections.append("【🎯 買値圏・押し目エントリー機会】\n" + "\n".join(entry_alerts[:4]))
+
+    if action_sections:
+        body += "\n\n" + "\n\n".join(action_sections)
 
     send_notification(title="朝の地合いゲート判定", message=body, color_level=status)
     print("日次地合い判定およびウォッチリスト追跡が正常に完了し、通知処理を実行しました。")
