@@ -424,10 +424,10 @@ def send_daily_gate_flex(status, reason, action_guideline, market_snapshot, risk
         return
 
     status_theme = {
-        "GREEN": {"label": "🟢 リスクオン（買付許可）", "color": "#10b981", "bg": "#064e3b"},
-        "YELLOW": {"label": "🟡 警戒局面（ロット半減）", "color": "#f59e0b", "bg": "#78350f"},
-        "RED": {"label": "🔴 リスクオフ（新規買停止）", "color": "#ef4444", "bg": "#7f1d1d"}
-    }.get(status, {"label": "🟡 警戒局面", "color": "#f59e0b", "bg": "#78350f"})
+        "GREEN": {"label": "🟢 リスクオン（買付許可）", "color": "#10b981", "bg": "#064e3b", "cash": "10〜30% (積極投資)"},
+        "YELLOW": {"label": "🟡 警戒局面（ロット半減）", "color": "#f59e0b", "bg": "#78350f", "cash": "50〜70% (現金温存)"},
+        "RED": {"label": "🔴 リスクオフ（新規買停止）", "color": "#ef4444", "bg": "#7f1d1d", "cash": "80〜100% (全面待機)"}
+    }.get(status, {"label": "🟡 警戒局面", "color": "#f59e0b", "bg": "#78350f", "cash": "50〜70% (現金温存)"})
 
     bubbles = []
 
@@ -476,7 +476,16 @@ def send_daily_gate_flex(status, reason, action_guideline, market_snapshot, risk
                     "margin": "sm",
                     "contents": [
                         {"type": "text", "text": "🎯 行動方針:", "size": "xs", "color": status_theme["color"], "weight": "bold"},
-                        {"type": "text", "text": action_guideline or "指値位置を確認してください", "size": "xs", "color": "#f8fafc", "wrap": True, "margin": "xs"}
+                        {"type": "text", "text": action_guideline or "指値位置を確認してください", "size": "xs", "color": "#f8fafc", "wrap": True, "margin": "xs"},
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "margin": "xs",
+                            "contents": [
+                                {"type": "text", "text": "🛡️ 推奨Cash比率:", "size": "xxs", "color": "#94a3b8", "flex": 5},
+                                {"type": "text", "text": status_theme["cash"], "size": "xxs", "color": status_theme["color"], "weight": "bold", "align": "end", "flex": 7}
+                            ]
+                        }
                     ]
                 },
                 {"type": "separator", "margin": "sm", "color": "#334155"},

@@ -471,11 +471,92 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       user-select: none;
       transition: filter 0.2s;
     }
-    .privacy-active-btn {
-      border-color: #a855f7 !important;
-      color: #c084fc !important;
-      background: rgba(168, 85, 247, 0.15) !important;
+    /* 地合い連動 推奨キャッシュ比率バナー */
+    .cash-strategy-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(56, 189, 248, 0.1));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 0.85rem;
     }
+
+    /* 5軸クオンツ評価ミニバー (5-Axis Quant Radar) */
+    .quant-axis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      background: rgba(0,0,0,0.28);
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .quant-axis-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 0.72rem;
+    }
+    .quant-axis-label {
+      color: var(--text-sub);
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+    .quant-axis-bar-bg {
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .quant-axis-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #0284c7, #10b981);
+    }
+
+    /* 📱 スマホ専用 固定ボトムバー (Mobile Bottom Bar) */
+    .mobile-bottom-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 6px 12px 10px 12px;
+      z-index: 1000;
+      justify-content: space-around;
+      align-items: center;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 768px) {
+      .mobile-bottom-bar { display: flex; }
+      body { padding-bottom: 75px; }
+    }
+    .mobile-btn {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-size: 0.7rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .mobile-btn span.icon { font-size: 1.15rem; line-height: 1.1; }
+    .mobile-btn:active { background: rgba(255,255,255,0.1); color: #fff; }
 
     /* トースト通知ポップアップ */
     .toast {
@@ -535,12 +616,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       {% endfor %}
     </div>
 
-    <!-- 🏆 トラックレコード & 勝率実績パネル -->
+    <!-- 🛡️ 地合い連動・推奨キャッシュポジション比率バナー -->
+    {% if cash_strategy %}
+    <div class="cash-strategy-banner">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <span style="font-size: 1.3rem;">🛡️</span>
+        <div>
+          <strong style="color: {{ cash_strategy.color }}; font-size: 0.95rem;">地合い連動 推奨Cash比率: {{ cash_strategy.ratio }} ({{ cash_strategy.badge }})</strong>
+          <div style="font-size: 0.75rem; color: var(--text-sub); margin-top: 2px;">{{ cash_strategy.guideline }}</div>
+        </div>
+      </div>
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.8rem;">
+        現金比率目安: <strong style="color: {{ cash_strategy.color }};">{{ cash_strategy.ratio }}</strong> / ポジション枠: <strong>{{ 100 - (cash_strategy.ratio.split('〜')[0]|int) }}%以下</strong>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 🏆 トラックレコード & 勝率実績パネル (Profit Factor & Avg R-Multiple対応) -->
     {% if track_record and track_record.total_recommended > 0 %}
     <div class="track-panel">
       <div class="track-header">
         <div class="track-title">🏆 過去推奨銘柄の実績・トラックレコード</div>
-        <div style="font-size: 0.75rem; color: var(--text-sub);">直近推奨銘柄の追跡＆パフォーマンス集計</div>
+        <div style="font-size: 0.75rem; color: var(--text-sub);">直近推奨銘柄の追跡＆パフォーマンス集計 (損益比・R倍数クオンツ監査)</div>
       </div>
       <div class="track-grid">
         <div class="track-stat">
@@ -550,6 +647,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="track-stat">
           <div class="track-label">利確達成・勝率</div>
           <div class="track-val" style="color: var(--accent-green);">{{ track_record.win_rate_pct }}%</div>
+        </div>
+        <div class="track-stat">
+          <div class="track-label">モデル損益比 (PF)</div>
+          <div class="track-val" style="color: var(--accent-blue);">{{ track_record.get('profit_factor', 1.0) }}</div>
+        </div>
+        <div class="track-stat">
+          <div class="track-label">平均R倍数 (Avg R)</div>
+          <div class="track-val" style="color: {% if track_record.get('avg_r_multiple', 0) > 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">{% if track_record.get('avg_r_multiple', 0) > 0 %}+{% endif %}{{ track_record.get('avg_r_multiple', 0.0) }}R</div>
         </div>
         <div class="track-stat">
           <div class="track-label">平均最高上昇率</div>
@@ -570,6 +675,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               <th>推奨時価格</th>
               <th>最高到達値</th>
               <th>最高上昇率</th>
+              <th>R倍数</th>
               <th>ステータス</th>
             </tr>
           </thead>
@@ -581,6 +687,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               <td>{{ r.recommend_price }}円</td>
               <td>{{ r.high_price }}円</td>
               <td class="{% if r.max_gain_pct > 0 %}badge-win{% else %}neg{% endif %}">{% if r.max_gain_pct > 0 %}+{% endif %}{{ r.max_gain_pct }}%</td>
+              <td style="color: {% if r.get('r_multiple', 0) > 0 %}var(--accent-green){% else %}var(--accent-red){% endif %}; font-weight: bold;">{% if r.get('r_multiple', 0) > 0 %}+{% endif %}{{ r.get('r_multiple', 0.0) }}R</td>
               <td>
                 <span class="pill {% if '利確' in r.status %}pill-cash{% elif '損切' in r.status %}pill-vcp{% else %}pill-theme{% endif %}">{{ r.status }}</span>
               </td>
@@ -876,6 +983,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <div class="stat-item">
             <div class="stat-label">リスクリワード比</div>
             <div class="stat-val" style="color: var(--accent-green);">1 : {{ stock.analysis.risk_reward_ratio }}</div>
+          </div>
+        </div>
+
+        <!-- 5軸クオンツ評価ミニバー (5-Axis Quant Breakdown) -->
+        <div class="quant-axis-grid">
+          <div class="quant-axis-item">
+            <div class="quant-axis-label"><span>📈 成長性</span><span>+{{ stock.rev_growth_pct }}%</span></div>
+            <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: {{ [[(stock.rev_growth_pct * 2.5)|round|int, 20]|max, 100]|min }}%;"></div></div>
+          </div>
+          <div class="quant-axis-item">
+            <div class="quant-axis-label"><span>⚡ 需給/RS</span><span>+{{ stock.rs_rating }}%</span></div>
+            <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: {{ [[(stock.rs_rating + 40)|round|int, 30]|max, 100]|min }}%;"></div></div>
+          </div>
+          <div class="quant-axis-item">
+            <div class="quant-axis-label"><span>💰 収益性</span><span>OP {{ stock.op_margin_pct }}%</span></div>
+            <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: {{ [[(stock.op_margin_pct * 3.5 + 20)|round|int, 20]|max, 100]|min }}%;"></div></div>
+          </div>
+          <div class="quant-axis-item">
+            <div class="quant-axis-label"><span>🏰 堀(Moat)</span><span>{{ stock.analysis.moat_rating }}</span></div>
+            <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: {% if stock.analysis.moat_rating == 'WIDE' %}95%{% elif stock.analysis.moat_rating == 'MEDIUM' %}75%{% else %}50%{% endif %};"></div></div>
+          </div>
+          <div class="quant-axis-item">
+            <div class="quant-axis-label"><span>🛡️ 健全性</span><span>{% if stock.is_net_cash %}無借金{% else %}標準{% endif %}</span></div>
+            <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: {% if stock.is_net_cash %}90%{% else %}65%{% endif %};"></div></div>
           </div>
         </div>
 
@@ -1520,6 +1651,29 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
           </div>
 
+          <div class="quant-axis-grid">
+            <div class="quant-axis-item">
+              <div class="quant-axis-label"><span>📈 成長性</span><span>+${growth}%</span></div>
+              <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: ${Math.min(100, Math.max(20, Math.round(growth * 2.5)))}%;"></div></div>
+            </div>
+            <div class="quant-axis-item">
+              <div class="quant-axis-label"><span>⚡ 需給/RS</span><span>+${rs}%</span></div>
+              <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: ${Math.min(100, Math.max(30, Math.round(rs + 40)))}%;"></div></div>
+            </div>
+            <div class="quant-axis-item">
+              <div class="quant-axis-label"><span>💰 収益性</span><span>OP ${opMargin}%</span></div>
+              <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: ${Math.min(100, Math.max(20, Math.round(opMargin * 3.5 + 20)))}%;"></div></div>
+            </div>
+            <div class="quant-axis-item">
+              <div class="quant-axis-label"><span>🏰 堀(Moat)</span><span>${moat}</span></div>
+              <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: ${moat === 'WIDE' ? 95 : (moat === 'MEDIUM' ? 75 : 50)}%;"></div></div>
+            </div>
+            <div class="quant-axis-item">
+              <div class="quant-axis-label"><span>🛡️ 健全性</span><span>${stock.is_net_cash ? '無借金' : '標準'}</span></div>
+              <div class="quant-axis-bar-bg"><div class="quant-axis-bar-fill" style="width: ${stock.is_net_cash ? 90 : 65}%;"></div></div>
+            </div>
+          </div>
+
           <div class="tp-box">
             <div class="tp-item">
               <span class="tp-label">🎯 TP1 (+20% 原資回収/1株利確):</span>
@@ -1700,6 +1854,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       });
     }
 
+    function focusSearch() {
+      const fi = document.getElementById("filterInput");
+      if (fi) {
+        fi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        fi.focus();
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       loadPrivacyMode();
       loadUserCapital();
@@ -1710,6 +1872,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       initArchiveSwitcher();
     });
   </script>
+
+  <!-- 📱 スマホ専用 固定ボトムアクションバー (Mobile Bottom Bar) -->
+  <div class="mobile-bottom-bar">
+    <button type="button" class="mobile-btn" onclick="toggleStarFilter()">
+      <span class="icon">⭐</span>
+      <span>お気に入り</span>
+    </button>
+    <button type="button" class="mobile-btn" onclick="focusSearch()">
+      <span class="icon">🔍</span>
+      <span>銘柄検索</span>
+    </button>
+    <button type="button" class="mobile-btn" onclick="togglePrivacyMode()">
+      <span class="icon">👁️</span>
+      <span>伏字切替</span>
+    </button>
+    <button type="button" class="mobile-btn" onclick="copyStockCodes()">
+      <span class="icon">📋</span>
+      <span>コードコピー</span>
+    </button>
+    <button type="button" class="mobile-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+      <span class="icon">⬆</span>
+      <span>TOP</span>
+    </button>
+  </div>
 </body>
 </html>
 """
@@ -1978,6 +2164,33 @@ def main():
             pass
     all_history_json = json.dumps(all_history_map, ensure_ascii=False)
 
+    # 地合い連動キャッシュポジション戦略の算定
+    avg_week_pct = sum([m.get("week_diff", 0) for m in market_indices]) / max(len(market_indices), 1)
+    if avg_week_pct >= 0.5:
+        cash_strategy = {
+            "status": "GREEN",
+            "ratio": "10〜30%",
+            "color": "var(--accent-green)",
+            "badge": "🟢 リスクオン（積極投資ゾーン）",
+            "guideline": "主要指数が力強い推移。確信度S・A銘柄への積極エントリー＆ピラミッディング（買い増し）を推奨。"
+        }
+    elif avg_week_pct >= -1.5:
+        cash_strategy = {
+            "status": "YELLOW",
+            "ratio": "40〜60%",
+            "color": "var(--accent-gold)",
+            "badge": "🟡 警戒レンジ（打診・選別投資ゾーン）",
+            "guideline": "相場全体の上値が重い展開。ロットサイズを通常の50%に抑制し、ブレイクよりも押し目・25MA反発を重視。"
+        }
+    else:
+        cash_strategy = {
+            "status": "RED",
+            "ratio": "70〜90%",
+            "color": "var(--accent-red)",
+            "badge": "🔴 リスクオフ（資金保全ゾーン）",
+            "guideline": "指数全体が調整局面。新規買いは手控え、保有株の損切りライン徹底とキャッシュ比率高めの維持を最優先。"
+        }
+
     # HTML出力
     os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
     template = Template(HTML_TEMPLATE, autoescape=True)
@@ -1988,6 +2201,7 @@ def main():
         total_screened=len(candidates),
         analyzed_stocks=analyzed_stocks,
         market_indices=market_indices,
+        cash_strategy=cash_strategy,
         track_record=track_record,
         sector_dist=sector_dist,
         archive_dates=archive_dates,

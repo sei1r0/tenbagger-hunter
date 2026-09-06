@@ -106,6 +106,9 @@ def calculate_track_record():
     win_count = 0
     total_max_gain = 0.0
     tenbagger_candidates = 0
+    total_gains_pct = 0.0
+    total_losses_pct = 0.0
+    r_multiples = []
 
     for key, item in all_recommendations.items():
         code = item["code"]
@@ -117,6 +120,7 @@ def calculate_track_record():
         if df is None or df.empty:
             curr_p, high_p, max_gain_pct, curr_gain_pct, status_label = rec_p, rec_p, 0.0, 0.0, "推移中"
             is_win = False
+            trade_return_pct = 0.0
         else:
             try:
                 rec_dt = pd.to_datetime(rec_date).tz_localize(df.index.tz) if df.index.tz else pd.to_datetime(rec_date)
@@ -134,6 +138,7 @@ def calculate_track_record():
             # 時系列損切り・利確シミュレーション（Execution-Aware Backtest）
             status_label = "推移中"
             is_win = False
+            trade_return_pct = curr_gain_pct
 
             for _, row_bar in df_sub.iterrows():
                 bar_low = float(row_bar["Low"])
@@ -143,12 +148,14 @@ def calculate_track_record():
                 if stop_loss > 0 and bar_low <= stop_loss:
                     status_label = "損切執行"
                     is_win = False
+                    trade_return_pct = round(-abs((rec_p - stop_loss) / max(rec_p, 1)) * 100, 1)
                     break
 
                 # B. +10%利確ターゲット到達が先か？
                 if bar_high >= (rec_p * 1.10):
                     status_label = "利確達成 (+10%超)"
                     is_win = True
+                    trade_return_pct = max_gain_pct
                     break
 
             if status_label == "推移中":
@@ -160,6 +167,15 @@ def calculate_track_record():
 
         if is_win:
             win_count += 1
+            total_gains_pct += max(trade_return_pct, 0.0)
+        else:
+            if trade_return_pct < 0:
+                total_losses_pct += abs(trade_return_pct)
+
+        # 1R（初期リスク比率）に基づく獲得R倍数算出
+        risk_pct = max(0.04, (rec_p - stop_loss) / max(rec_p, 1)) if stop_loss > 0 else 0.08
+        r_mult = round(trade_return_pct / (risk_pct * 100), 2)
+        r_multiples.append(r_mult)
         
         if max_gain_pct >= 50.0:
             tenbagger_candidates += 1
@@ -178,12 +194,15 @@ def calculate_track_record():
             "high_price": high_p,
             "max_gain_pct": max_gain_pct,
             "curr_gain_pct": curr_gain_pct,
+            "r_multiple": r_mult,
             "status": status_label
         })
 
     total_count = len(evaluated_records)
     win_rate = round((win_count / max(total_count, 1)) * 100, 1)
     avg_max_gain = round(total_max_gain / max(total_count, 1), 1)
+    profit_factor = round(total_gains_pct / max(total_losses_pct, 0.01), 2) if total_losses_pct > 0 else (round(total_gains_pct, 2) if total_gains_pct > 0 else 1.0)
+    avg_r = round(sum(r_multiples) / max(len(r_multiples), 1), 2) if r_multiples else 0.0
 
     # 上昇率順にソート
     evaluated_records.sort(key=lambda x: x["max_gain_pct"], reverse=True)
@@ -193,6 +212,8 @@ def calculate_track_record():
         "win_count": win_count,
         "win_rate_pct": win_rate,
         "avg_max_gain_pct": avg_max_gain,
+        "profit_factor": profit_factor,
+        "avg_r_multiple": avg_r,
         "tenbagger_candidates": tenbagger_candidates,
         "records": evaluated_records[:15] # 上位15件
     }
@@ -208,4 +229,4 @@ def calculate_track_record():
 if __name__ == "__main__":
     res = calculate_track_record()
     print("[INFO] トラックレコード集計結果:")
-    print(f"  累計推奨数: {res['total_recommended']}件 / 勝率: {res['win_rate_pct']}% / 平均最高上昇率: +{res['avg_max_gain_pct']}%")
+    print(f"  累計推奨数: {res['total_recommended']}件 / 勝率: {res['win_rate_pct']}% / PF: {res.get('profit_factor', 1.0)} / 平均R倍数: +{res.get('avg_r_multiple', 0.0)}R / 平均最高上昇率: +{res['avg_max_gain_pct']}%")
