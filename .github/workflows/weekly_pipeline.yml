@@ -2,23 +2,15 @@ name: Weekly Pipeline (Screening & AI Analytics)
 
 on:
   schedule:
-    # 毎週日曜日 JST 06:00 (UTC 土曜 21:00)
-    - cron: '0 21 * * 6'
+    # 毎週土曜日 JST 06:00 (UTC 金曜 21:00)
+    - cron: '0 21 * * 5'
   workflow_dispatch:
-
-# GitHub Pages へのデプロイ権限とコミット権限を設定
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -51,24 +43,12 @@ jobs:
         run: |
           python src/agent_analyst.py
 
-      - name: Commit Candidates Data & Docs
+      - name: Commit and Push Results
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/screened_candidates.json docs/index.html
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update analysis & dashboard [skip ci]" && git push)
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'docs/'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update screening data and dashboard [skip ci]" && git push)
 
       - name: Notify on Failure
         if: failure()
