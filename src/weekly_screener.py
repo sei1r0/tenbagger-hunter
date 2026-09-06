@@ -21,7 +21,7 @@ MIN_PRICE = 200                # 最低株価 200円以上（超低位株・ボ�
 MAX_MARKET_CAP_OKU = 300       # 時価総額 300億円以下（テンバガーポテンシャル）
 MIN_TRADING_VALUE_MAN = 5000   # 1日売買代金 5,000万円以上
 MAX_SMA25_DEVIATION = 0.25     # 25日線上方乖離率 25%以内（高値掴み・過熱イナゴ排除）
-MIN_SMA25_DEVIATION = 0.02     # 25日線上方乖離率 2%以上（初動確認）
+MIN_SMA25_DEVIATION = 0.00     # 25日線上方乖離率 0%以上（25MAタッチ押し目〜初動を完全網羅）
 BATCH_SIZE = 50                # yfinance API安定化バッチサイズ
 TARGET_POOL_LIMIT = 20         # 厳選上位20銘柄に絞り込み
 BENCHMARK_TICKER = "2516.T"    # 東証グロース250 ETF（RS相対力ベンチマーク）
@@ -143,7 +143,7 @@ def run_batch_screener():
                 if not (curr_close > sma25 and sma25 > sma75 and curr_close > sma200):
                     continue
 
-                # フィルター4: 25日線乖離率（高値掴みイナゴ排除 & 初動判定）
+                # フィルター4: 25日線乖離率（高値掴みイナゴ排除 & 25MAタッチ押し目を許容）
                 deviation_25 = (curr_close - sma25) / sma25
                 if not (MIN_SMA25_DEVIATION <= deviation_25 <= MAX_SMA25_DEVIATION):
                     continue
@@ -157,7 +157,10 @@ def run_batch_screener():
                 market_cap = 0
                 rev_growth_pct = 0.0
                 op_margin_pct = 0.0
+                insider_held_pct = 0.0
                 psr = None
+                trailing_pe = None
+                business_summary = ""
 
                 try:
                     t = yf.Ticker(ticker_symbol)
@@ -179,10 +182,24 @@ def run_batch_screener():
                     if op_margin is not None:
                         op_margin_pct = round(op_margin * 100, 1)
 
+                    # 創業者・役員保有比率 (Insiders Ownership)
+                    insider_held = info.get("heldPercentInsiders", None)
+                    if insider_held is not None:
+                        insider_held_pct = round(float(insider_held) * 100, 1)
+
+                    # PER
+                    pe_val = info.get("trailingPE", None)
+                    if pe_val is not None and float(pe_val) > 0:
+                        trailing_pe = round(float(pe_val), 1)
+
                     # PSR
                     psr_val = info.get("priceToSalesTrailing12Months", None)
                     if psr_val is not None and float(psr_val) > 0:
                         psr = round(float(psr_val), 1)
+
+                    # 企業公式概要
+                    raw_summary = info.get("longBusinessSummary") or info.get("businessSummary") or ""
+                    business_summary = raw_summary.strip()[:200]
 
                 except Exception:
                     pass
@@ -208,24 +225,25 @@ def run_batch_screener():
                     rs_rating = round(stock_return_60d - benchmark_return_60d, 1)
 
                     # 直近20営業日の大口買い集め比率（Up/Down Volume比）
-                    up_down_ratio = calculate_up_down_volume_ratio(df.iloc[-20:])
+                    up_down_ratio = calculate_up_down_volume_ratio(df.iloc[-21:] if len(df) >= 21 else df)
 
                     # 新高値接近度（1.0に近いほど新高値直下）
                     high_proximity = round(curr_close / high_52w, 3)
 
-                    # 進化版 複合モメンタム＆クオリティスコア算出
-                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [新高値近接]
+                    # テンバガー・プロフェッショナル複合スコア算出
+                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接]
                     turnover_score = min(trading_value_man / max(market_cap_oku, 1), 25.0)
-                    surge_score = min(vol_surge * 6, 25.0)
+                    surge_score = min(vol_surge * 5, 20.0)
                     growth_bonus = min(max(rev_growth_pct, 0) * 0.6, 20.0)
-                    profit_bonus = min(max(op_margin_pct, 0) * 0.5, 15.0)
-                    accumulation_score = min(up_down_ratio * 10, 15.0)
+                    profit_bonus = min(max(op_margin_pct, 0) * 0.4, 10.0)
+                    accumulation_score = min(up_down_ratio * 8, 15.0)
                     rs_bonus = min(max(rs_rating, 0) * 0.25, 15.0)
                     vcp_bonus = 10.0 if is_vcp else 0.0
+                    founder_bonus = 10.0 if insider_held_pct >= 30 else (5.0 if insider_held_pct >= 15 else 0.0)
                     proximity_bonus = high_proximity * 10.0
 
                     total_momentum_score = round(
-                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + proximity_bonus, 2
+                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus, 2
                     )
 
                     code_str = str(row_meta["code"])
@@ -237,13 +255,19 @@ def run_batch_screener():
                         "market": row_meta["market"],
                         "sector": row_meta["sector"],
                         "close": curr_close,
+                        "sma25": round(sma25, 1),
+                        "sma75": round(sma75, 1),
+                        "sma200": round(sma200, 1),
+                        "high_52w": round(high_52w, 1),
                         "market_cap_oku": market_cap_oku,
                         "trading_value_man": trading_value_man,
-                        "high_52w": high_52w,
                         "vol_surge": vol_surge,
                         "rev_growth_pct": rev_growth_pct,
                         "op_margin_pct": op_margin_pct,
+                        "insider_held_pct": insider_held_pct,
+                        "trailing_pe": trailing_pe,
                         "psr": psr,
+                        "business_summary": business_summary,
                         "rs_rating": rs_rating,
                         "is_vcp": is_vcp,
                         "up_down_ratio": up_down_ratio,
@@ -252,7 +276,8 @@ def run_batch_screener():
                         "momentum_score": total_momentum_score
                     })
                     vcp_str = " 🔥VCP" if is_vcp else ""
-                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億 / RS:+{rs_rating}% / 売上:+{rev_growth_pct}% / 営業益率:{op_margin_pct}%{vcp_str} / スコア:{total_momentum_score})")
+                    founder_str = f" / 創業者:{insider_held_pct}%" if insider_held_pct > 0 else ""
+                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億 / RS:+{rs_rating}% / 売上:+{rev_growth_pct}%{founder_str}{vcp_str} / スコア:{total_momentum_score})")
 
             except Exception:
                 continue

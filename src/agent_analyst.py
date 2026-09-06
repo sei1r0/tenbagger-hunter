@@ -129,6 +129,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     .pill-moat { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
     .pill-vcp { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); font-weight: bold; }
     .pill-rs { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); }
+    .pill-founder { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
 
     .score-badge {
       background: rgba(16, 185, 129, 0.15);
@@ -144,7 +145,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 0.6rem;
       margin-bottom: 0.85rem;
     }
@@ -290,6 +291,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               {% endif %}
               <span class="pill pill-rs">RS: +{{ stock.rs_rating }}%</span>
               <span class="pill pill-moat">🏰 参入障壁: {{ stock.analysis.moat_rating }}</span>
+              {% if stock.insider_held_pct and stock.insider_held_pct >= 20 %}
+                <span class="pill pill-founder">👑 創業者等: {{ stock.insider_held_pct }}%</span>
+              {% endif %}
               {% for tag in stock.analysis.theme_tags %}
                 <span class="pill pill-theme">#{{ tag }}</span>
               {% endfor %}
@@ -320,8 +324,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="stat-val" style="color: {% if stock.op_margin_pct > 10 %}var(--accent-green){% else %}inherit{% endif %}">+{{ stock.op_margin_pct }}%</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">出来高急増 / 大口比</div>
-            <div class="stat-val" style="color: var(--accent-blue);">{{ stock.vol_surge }}倍 / {{ stock.up_down_ratio }}倍</div>
+            <div class="stat-label">創業者保有比率</div>
+            <div class="stat-val" style="color: {% if stock.insider_held_pct >= 30 %}var(--accent-gold){% else %}inherit{% endif %}">{% if stock.insider_held_pct %}{{ stock.insider_held_pct }}%{% else %}-{% endif %}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">PER / PSR</div>
+            <div class="stat-val" style="font-size: 0.85rem;">{% if stock.trailing_pe %}{{ stock.trailing_pe }}倍{% else %}-{% endif %} / {% if stock.psr %}{{ stock.psr }}倍{% else %}-{% endif %}</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">買値目安 / 損切り</div>
@@ -352,7 +360,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         <div class="plan-box">
           <div style="font-size: 0.8rem; color: var(--text-sub);">
-            PSR: {% if stock.psr %}{{ stock.psr }}倍{% else %}-{% endif %} | 25MA乖離: +{{ stock.deviation_25_pct }}%
+            25MA: {{ stock.sma25 }}円 (乖離: +{{ stock.deviation_25_pct }}%) | 52週高値: {{ stock.high_52w }}円 | 大口比: {{ stock.up_down_ratio }}倍
           </div>
           <div class="action-links">
             <a class="btn-link" href="https://kabutan.jp/stock/chart?code={{ stock.code }}" target="_blank">📊 株探チャート</a>
@@ -409,20 +417,27 @@ def clean_and_parse_json(text):
 def analyze_stock_with_gemini(client, stock_info):
     vcp_status = "点灯中（売り圧力枯渇・ブレイクアウト直前）" if stock_info.get("is_vcp") else "通常推移"
     psr_str = f"{stock_info.get('psr')}倍" if stock_info.get("psr") else "算出外"
+    pe_str = f"{stock_info.get('trailing_pe')}倍" if stock_info.get("trailing_pe") else "算出外"
+    insider_str = f"{stock_info.get('insider_held_pct')}%" if stock_info.get("insider_held_pct") else "未開示/微小"
+    summary_str = stock_info.get("business_summary") or "新興成長企業"
 
     prompt = f"""
 あなたは急成長小型株（テンバガー）投資のトップクオンツ＆ファンダメンタルズスペシャリストです。
-以下の企業スペック、需給指標（RS/VCP）、および財務データに基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
+以下の企業スペック、需給指標（RS/VCP）、創業者比率、およびチャート重要価格に基づき、厳格なレッドチーム（強気・弱気ディベート）分析を実施し、売買プランを策定してください。
 
 【対象銘柄スペック】
 銘柄コード: {stock_info['code']}
 銘柄名: {stock_info['name']}
 市場・業種: {stock_info['market']} / {stock_info['sector']}
+公式事業概要: {summary_str}
 現在株価: {stock_info['close']}円
+25日移動平均線: {stock_info.get('sma25')}円 (乖離: +{stock_info.get('deviation_25_pct')}%)
+52週最高値: {stock_info.get('high_52w')}円
 時価総額: {stock_info['market_cap_oku']}億円
 直近売上高成長率: +{stock_info.get('rev_growth_pct', 0)}%
 直近営業利益率: +{stock_info.get('op_margin_pct', 0)}%
-PSR（株価売上高倍率）: {psr_str}
+創業者・役員保有比率: {insider_str}
+PER: {pe_str} / PSR: {psr_str}
 RS（対グロース250超過リターン）: +{stock_info.get('rs_rating', 0)}%
 出来高枯渇VCPシグナル: {vcp_status}
 出来高急増比: {stock_info.get('vol_surge', 1.0)}倍
@@ -435,8 +450,8 @@ RS（対グロース250超過リターン）: +{stock_info.get('rs_rating', 0)}%
 5. moat_rating: 参入障壁・競争優位性（"HIGH": 独自特許/強固なスイッチングコスト, "MEDIUM": 先行者優位/高シェア, "LOW": 価格競争リスク）
 6. growth_story: 10倍化への起爆シナリオ（強気視点、業績モメンタムやTAM展開を130〜150字程度で明瞭に記述）
 7. risk_factors: 最大の警戒リスク・落とし穴（弱気監査視点、競合参入や一過性特需などを80字程度で厳格に記述）
-8. entry_price: 押し目またはブレイク買いの目安価格（現在値 {stock_info['close']}円 基準）
-9. stop_loss: 厳格な損切りライン（買値から約 -7%〜-8%）
+8. entry_price: 押し目(25MA {stock_info.get('sma25')}円 付近)またはブレイク買い(52週高値 {stock_info.get('high_52w')}円 超)の目安価格
+9. stop_loss: 厳格な損切りライン（買値または25MA割れ基準で約 -7%〜-8%）
 10. risk_reward_ratio: リスクリワード比（数値のみ。例: 3.5）
 
 以下のJSONフォーマットのみを返してください。

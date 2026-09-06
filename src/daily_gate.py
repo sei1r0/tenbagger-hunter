@@ -36,7 +36,7 @@ def fetch_market_data(ticker_symbol: str, retries=3):
     return {"close": None, "pct_change": 0.0}
 
 def check_watchlist_action_triggers():
-    """週末厳選20銘柄の価格動向をチェックし、本日のエントリー・警戒シグナルを抽出"""
+    """週末厳選20銘柄の最新株価をリアルタイム取得し、本日のエントリー・警戒シグナルを抽出"""
     if not os.path.exists(CANDIDATES_FILE):
         return []
 
@@ -49,34 +49,61 @@ def check_watchlist_action_triggers():
     if not candidates:
         return []
 
+    top_candidates = candidates[:10]
+    tickers = [f"{s['code']}.T" for s in top_candidates if "code" in s]
+
+    # 直近の最新日足株価を取得（平日毎朝の最新終値）
+    latest_prices = {}
+    try:
+        data = yf.download(tickers=tickers, period="5d", interval="1d", group_by="ticker", auto_adjust=True, progress=False)
+        for s in top_candidates:
+            sym = f"{s['code']}.T"
+            try:
+                if len(tickers) == 1:
+                    df = data.dropna()
+                else:
+                    df = data[sym].dropna()
+                if not df.empty:
+                    latest_prices[s['code']] = float(df['Close'].iloc[-1])
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[WARN] リアルタイム監視株価の取得スキップ: {e}")
+
     action_alerts = []
 
-    for s in candidates[:10]:
+    for s in top_candidates:
         code = s.get("code")
         name = s.get("name")
-        curr_price = float(s.get("close", 0))
+        curr_price = latest_prices.get(code, float(s.get("close", 0)))
         analysis = s.get("analysis", {})
         tier = analysis.get("conviction_tier", "A")
         tier_icon = "👑" if tier == "S" else ("⭐" if tier == "A" else "📌")
 
         entry_price = float(analysis.get("entry_price", 0))
         stop_loss = float(analysis.get("stop_loss", 0))
+        sma25 = float(s.get("sma25", 0))
         is_vcp = s.get("is_vcp", False)
 
         # 1. 買値目安（押し目・ブレイク）接近トリガー (目安価格の ±2.5% 以内)
         if entry_price > 0 and abs(curr_price - entry_price) / entry_price <= 0.025:
             action_alerts.append(
-                f"🎯 買値圏: {tier_icon}{code} {name} (値:{curr_price}円 / 目安:{entry_price}円)"
+                f"🎯 買値圏: {tier_icon}{code} {name} (現在:{curr_price}円 / 目安:{entry_price}円)"
             )
-        # 2. VCP売り枯れ初動トリガー
+        # 2. 25日線タッチ・押し目反発ゾーン (25MAの +0.5%〜+2.5%)
+        elif sma25 > 0 and 0.005 <= (curr_price - sma25) / sma25 <= 0.025:
+            action_alerts.append(
+                f"📈 25MA押し目: {tier_icon}{code} {name} (現在:{curr_price}円 / 25MA:{sma25}円)"
+            )
+        # 3. VCP売り枯れ初動トリガー
         elif is_vcp:
             action_alerts.append(
                 f"🔥 VCP初動: {tier_icon}{code} {name} (RS:+{s.get('rs_rating',0)}% / {curr_price}円)"
             )
-        # 3. 損切り警戒トリガー (損切りラインから +2% 未満に接近)
+        # 4. 損切り警戒トリガー (損切りラインから +2% 未満に接近)
         elif stop_loss > 0 and curr_price <= (stop_loss * 1.02):
             action_alerts.append(
-                f"⚠️ 損切警戒: {code} {name} (値:{curr_price}円 / 損切:{stop_loss}円)"
+                f"⚠️ 損切警戒: {code} {name} (現在:{curr_price}円 / 損切:{stop_loss}円)"
             )
 
     return action_alerts
