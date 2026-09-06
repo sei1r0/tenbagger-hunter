@@ -19,6 +19,7 @@ OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
 OUTPUT_HTML_PATH = os.path.join(OUTPUT_HTML_DIR, "index.html")
 
 MAX_AI_ANALYZE = 40
+MAX_CONSECUTIVE_FAILURES = 3
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="ja">
@@ -282,6 +283,22 @@ def clean_and_parse_json(text):
     except Exception:
         return None
 
+def check_api_health(client):
+    """実行前にAPI疎通を確認する安全テスト（Pingテスト）"""
+    print("[INFO] Gemini API 疎通テスト中...")
+    try:
+        res = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents="ping",
+        )
+        if res and res.text:
+            print("[INFO] Gemini API 疎通確認完了（正常稼働中）")
+            return True
+    except Exception as e:
+        print(f"[CRITICAL ERROR] Gemini API疎通テスト失敗: {e}")
+        return False
+    return False
+
 def analyze_stock_with_gemini(client, stock_info):
     """Gemini 3.6-flash を使用したテンバガー潜在力分析（安定・高速版）"""
     prompt = f"""
@@ -332,14 +349,14 @@ def analyze_stock_with_gemini(client, stock_info):
                     res_json["theme_tags"] = [stock_info["sector"]]
                 if "risk_reward_ratio" not in res_json:
                     res_json["risk_reward_ratio"] = 3.0
-                return res_json
+                return res_json, True
         except Exception as e:
             print(f"[WARN] Gemini分析 試行 {attempt + 1}/2 失敗 ({stock_info['code']}): {e}")
             time.sleep(1)
 
-    # 万一失敗した場合のフォールバック
+    # 失敗時のフォールバック値
     stop = round(float(stock_info['close']) * 0.92, 1)
-    return {
+    fallback_data = {
         "score": 75,
         "theme_tags": [stock_info["sector"]],
         "growth_story": f"{stock_info['name']}は直近売上高成長率+{stock_info.get('rev_growth_pct', 0)}%、出来高急増比{stock_info.get('vol_surge', 1.0)}倍と強いモメンタムを維持。独自事業の進捗が注目点。",
@@ -348,6 +365,7 @@ def analyze_stock_with_gemini(client, stock_info):
         "stop_loss": stop,
         "risk_reward_ratio": 3.0
     }
+    return fallback_data, False
 
 def main():
     print(f"[INFO] 候補ファイル確認: {CANDIDATES_FILE}")
@@ -367,26 +385,36 @@ def main():
         candidates = candidates[:MAX_AI_ANALYZE]
 
     api_key = os.getenv("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key) if api_key else None
+    if not api_key:
+        print("[CRITICAL ERROR] GEMINI_API_KEY が設定されていません。処理を中断します。")
+        sys.exit(1)
+
+    client = genai.Client(api_key=api_key)
+
+    # サーキットブレーカー1: 初回導通確認
+    if not check_api_health(client):
+        print("[FATAL] API疎通が確認できないため、後続処理およびLINE通知を安全に緊急停止します。")
+        sys.exit(1)
 
     analyzed_stocks = []
+    consecutive_failures = 0
     print(f"[INFO] 厳選 {len(candidates)} 銘柄のGemini詳細分析を開始...")
 
     for item in candidates:
         print(f"  -> 分析中: {item['code']} {item['name']}")
-        if client:
-            analysis = analyze_stock_with_gemini(client, item)
+        analysis, success = analyze_stock_with_gemini(client, item)
+        
+        if success:
+            consecutive_failures = 0
         else:
-            stop = round(float(item['close']) * 0.92, 1)
-            analysis = {
-                "score": 70,
-                "theme_tags": [item["sector"]],
-                "growth_story": "上昇トレンド基調と売買代金の維持を監視。",
-                "risk_factors": "地合い悪化による短期的なボラティリティ上昇。",
-                "entry_price": item['close'],
-                "stop_loss": stop,
-                "risk_reward_ratio": 3.0
-            }
+            consecutive_failures += 1
+            print(f"[WARN] 連続失敗カウント: {consecutive_failures}/{MAX_CONSECUTIVE_FAILURES}")
+
+        # サーキットブレーカー2: 連続失敗による緊急遮断
+        if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+            print(f"[FATAL] APIエラーが {consecutive_failures} 銘柄連続で発生しました。異常と判断し後続処理を緊急停止します。")
+            sys.exit(1)
+
         item['analysis'] = analysis
         analyzed_stocks.append(item)
         time.sleep(0.3)

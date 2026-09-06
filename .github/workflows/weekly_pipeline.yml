@@ -2,19 +2,22 @@ name: Weekly Pipeline (Screening & AI Analytics)
 
 on:
   schedule:
-    # 毎週土曜日 JST 06:00 (UTC 金曜 21:00)
-    - cron: '0 21 * * 5'
+    # 毎週土曜日 朝7:00 JST (金曜日 22:00 UTC) に自動実行
+    - cron: '0 22 * * 5'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,12 +30,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Step 1 - Fetch All JPX Stocks
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python -u src/fetch_jpx_stocks.py
+
       - name: Step 2 - Run Screener
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          PYTHONUNBUFFERED: "1"
         run: |
-          python src/weekly_screener.py
+          python -u src/weekly_screener.py
 
       - name: Step 3 - Run Gemini Agent Analyst
         env:
@@ -40,29 +50,18 @@ jobs:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONUNBUFFERED: "1"
         run: |
-          python src/agent_analyst.py
+          python -u src/agent_analyst.py
 
-      - name: Commit and Push Results
+      - name: Step 4 - Commit and Push Results
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/screened_candidates.json docs/index.html
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update screening data and dashboard [skip ci]" && git push)
-
-      - name: Notify on Failure
-        if: failure()
-        env:
-          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-        run: |
-          python -c "
-          import os, requests
-          token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
-          uid = os.getenv('LINE_USER_ID')
-          if token and uid:
-              endpoint = 'https://api.line.me/v2/bot/message/push'
-              headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
-              payload = {'to': uid, 'messages': [{'type': 'text', 'text': '🚨【システム異常】Weekly Pipeline 実行中にエラーが発生しました。'}]}
-              requests.post(endpoint, headers=headers, json=payload, timeout=10)
-          "
+          git add data/ docs/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: auto-update screened data and dashboard report [skip ci]"
+            git push origin main
+          fi
