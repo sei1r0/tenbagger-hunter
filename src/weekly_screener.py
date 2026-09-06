@@ -48,22 +48,23 @@ def calculate_up_down_volume_ratio(df_window):
     except Exception:
         return 1.0
 
-def fetch_benchmark_return_60d():
-    """グロース250指数の直近60営業日リターンを算出"""
+def fetch_benchmark_returns():
+    """グロース250指数の直近60営業日および120営業日リターンを算出"""
+    ret_60d, ret_120d = 0.0, 0.0
     try:
         t = yf.Ticker(BENCHMARK_TICKER)
-        hist = t.history(period="6mo")
+        hist = t.history(period="1y")
         if len(hist) >= 60:
-            start_p = float(hist["Close"].iloc[-60])
             curr_p = float(hist["Close"].iloc[-1])
-            return ((curr_p - start_p) / start_p) * 100
-        elif len(hist) >= 2:
-            start_p = float(hist["Close"].iloc[0])
+            p_60 = float(hist["Close"].iloc[-60])
+            ret_60d = ((curr_p - p_60) / p_60) * 100
+        if len(hist) >= 120:
             curr_p = float(hist["Close"].iloc[-1])
-            return ((curr_p - start_p) / start_p) * 100
+            p_120 = float(hist["Close"].iloc[-120])
+            ret_120d = ((curr_p - p_120) / p_120) * 100
     except Exception as e:
         print(f"[WARN] ベンチマーク取得失敗 ({BENCHMARK_TICKER}): {e}")
-    return 0.0
+    return ret_60d, ret_120d
 
 def run_batch_screener():
     start_time = time.time()
@@ -73,9 +74,9 @@ def run_batch_screener():
 
     prev_codes = get_prev_screened_codes()
 
-    # RS（Relative Strength）の基準となるグロース市場リターンを取得
-    benchmark_return_60d = fetch_benchmark_return_60d()
-    print(f"[INFO] グロース市場ベンチマーク60日リターン: {round(benchmark_return_60d, 2)}%")
+    # RS（Relative Strength）の基準となるグロース市場マルチタイムリターンを取得
+    bench_ret_60d, bench_ret_120d = fetch_benchmark_returns()
+    print(f"[INFO] グロース市場ベンチマークリターン (60日: {round(bench_ret_60d, 2)}% / 120日: {round(bench_ret_120d, 2)}%)")
 
     df_stocks = pd.read_csv(STOCKS_CSV, dtype={"code": str})
     df_stocks = df_stocks[df_stocks["market"].isin(["グロース", "スタンダード"])].copy()
@@ -212,6 +213,23 @@ def run_batch_screener():
                     # 浮動株時価総額の推定
                     float_shares = info.get("floatShares", None)
 
+                    # ① 上場後1〜5年「黄金期」判定
+                    first_trade_epoch = info.get("firstTradeDateEpochUtc", None)
+                    is_fresh_ipo = False
+                    if first_trade_epoch:
+                        days_since_ipo = (time.time() - float(first_trade_epoch)) / 86400
+                        is_fresh_ipo = bool(300 <= days_since_ipo <= 1825) # 約1年〜5年
+
+                    # ② 成長加速度（売上成長 +25%以上 または 利益成長 +30%以上）
+                    earnings_growth = info.get("earningsGrowth", None)
+                    earnings_growth_pct = round(float(earnings_growth) * 100, 1) if earnings_growth is not None else None
+                    is_accelerating = bool(rev_growth_pct >= 25.0 or (earnings_growth_pct and earnings_growth_pct >= 30.0))
+
+                    # ④ 機関投資家保有比率（初期青田買い段階: 3%〜25%）
+                    inst_held = info.get("heldPercentInstitutions", None)
+                    inst_held_pct = round(float(inst_held) * 100, 1) if inst_held is not None else 0.0
+                    is_early_inst = bool(3.0 <= inst_held_pct <= 25.0)
+
                 except Exception:
                     pass
 
@@ -243,10 +261,14 @@ def run_batch_screener():
                     # VCP（出来高枯渇・売り枯れ）検知: 52週高値10%圏内で直近3日出来高が25日平均の75%未満
                     is_vcp = (curr_close >= high_52w * 0.90) and (vol3 < max(vol25, 1) * 0.75)
 
-                    # RS（相対力指数）: 個別株60日リターン - ベンチマーク60日リターン
+                    # ③ マルチタイムRS（相対力指数）: 60日RS (60%) ＋ 120日RS (40%) の加重相対力
                     p_60d_ago = float(closes.iloc[-min(60, len(closes))])
+                    p_120d_ago = float(closes.iloc[-min(120, len(closes))])
                     stock_return_60d = ((curr_close - p_60d_ago) / p_60d_ago) * 100
-                    rs_rating = round(stock_return_60d - benchmark_return_60d, 1)
+                    stock_return_120d = ((curr_close - p_120d_ago) / p_120d_ago) * 100
+                    rs_60d = stock_return_60d - bench_ret_60d
+                    rs_120d = stock_return_120d - bench_ret_120d
+                    rs_rating = round(rs_60d * 0.6 + rs_120d * 0.4, 1)
 
                     # 直近20営業日の大口買い集め比率（Up/Down Volume比）
                     up_down_ratio = calculate_up_down_volume_ratio(df.iloc[-21:] if len(df) >= 21 else df)
@@ -255,7 +277,7 @@ def run_batch_screener():
                     high_proximity = round(curr_close / high_52w, 3)
 
                     # テンバガー・プロフェッショナル複合スコア算出
-                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長]
+                    # [回転率] + [急増比] + [売上成長] + [利益率] + [大口買い集め] + [RS超過] + [VCP初動] + [創業者比率] + [新高値近接] + [浮動株軽量] + [ネットキャッシュ] + [黒字成長] + [上場黄金期] + [成長加速] + [機関初期]
                     turnover_score = min(trading_value_man / max(market_cap_oku, 1), 25.0)
                     surge_score = min(vol_surge * 5, 20.0)
                     growth_bonus = min(max(rev_growth_pct, 0) * 0.6, 20.0)
@@ -268,9 +290,12 @@ def run_batch_screener():
                     float_bonus = 8.0 if is_ultra_light else 0.0
                     net_cash_bonus = 5.0 if is_net_cash else 0.0
                     turnaround_bonus = 5.0 if is_turnaround else 0.0
+                    ipo_bonus = 6.0 if is_fresh_ipo else 0.0
+                    accel_bonus = 6.0 if is_accelerating else 0.0
+                    inst_bonus = 5.0 if is_early_inst else 0.0
 
                     total_momentum_score = round(
-                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus, 2
+                        turnover_score + surge_score + growth_bonus + profit_bonus + accumulation_score + rs_bonus + vcp_bonus + founder_bonus + proximity_bonus + float_bonus + net_cash_bonus + turnaround_bonus + ipo_bonus + accel_bonus + inst_bonus, 2
                     )
 
                     code_str = str(row_meta["code"])
@@ -293,6 +318,7 @@ def run_batch_screener():
                         "rev_growth_pct": rev_growth_pct,
                         "op_margin_pct": op_margin_pct,
                         "insider_held_pct": insider_held_pct,
+                        "inst_held_pct": inst_held_pct,
                         "trailing_pe": trailing_pe,
                         "psr": psr,
                         "business_summary": business_summary,
@@ -301,6 +327,9 @@ def run_batch_screener():
                         "is_ultra_light": is_ultra_light,
                         "is_net_cash": is_net_cash,
                         "is_turnaround": is_turnaround,
+                        "is_fresh_ipo": is_fresh_ipo,
+                        "is_accelerating": is_accelerating,
+                        "is_early_inst": is_early_inst,
                         "up_down_ratio": up_down_ratio,
                         "deviation_25_pct": round(deviation_25 * 100, 1),
                         "badge": "STAY" if is_stay else "NEW",
@@ -309,7 +338,8 @@ def run_batch_screener():
                     vcp_str = " 🔥VCP" if is_vcp else ""
                     founder_str = f" / 創業者:{insider_held_pct}%" if insider_held_pct > 0 else ""
                     float_str = f" / 浮動株:{float_mcap_oku}億" if is_ultra_light else ""
-                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}% / 売上:+{rev_growth_pct}%{founder_str}{vcp_str} / スコア:{total_momentum_score})")
+                    ipo_str = " 🌱IPO黄金期" if is_fresh_ipo else ""
+                    print(f"  ★ 合格: {code_str} {row_meta['name']} (株価:{curr_close}円 / {market_cap_oku}億{float_str} / RS:+{rs_rating}% / 売上:+{rev_growth_pct}%{founder_str}{vcp_str}{ipo_str} / スコア:{total_momentum_score})")
 
             except Exception:
                 continue

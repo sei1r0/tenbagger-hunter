@@ -127,8 +127,14 @@ def send_flex_carousel(title, top_stocks, pages_url, market_data=None):
         edge_tags = []
         if s.get("is_ultra_light"):
             edge_tags.append(f"🎈浮動{s.get('float_mcap_oku')}億")
+        if s.get("is_fresh_ipo"):
+            edge_tags.append("🌱IPO黄金期")
         if s.get("is_vcp"):
             edge_tags.append("🔥VCP")
+        if s.get("is_accelerating"):
+            edge_tags.append("🚀成長加速")
+        if s.get("is_early_inst"):
+            edge_tags.append("💎機関初期")
         if s.get("is_net_cash"):
             edge_tags.append("💰無借金")
         if s.get("is_turnaround"):
