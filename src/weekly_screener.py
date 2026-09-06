@@ -131,7 +131,7 @@ def run_batch_screener():
                 if curr_close < (high_52w * 0.85):
                     continue
 
-                # 時価総額・ファンダメンタルズ取得（fast_info優先）
+                # 時価総額・ファンダメンタルズ取得
                 market_cap = 0
                 rev_growth_pct = 0.0
                 try:
@@ -139,12 +139,15 @@ def run_batch_screener():
                     fast = getattr(t, "fast_info", None)
                     if fast and hasattr(fast, "market_cap") and fast.market_cap:
                         market_cap = fast.market_cap
-                    else:
-                        info = t.info or {}
+
+                    # 売上成長率および時価総額フォールバックの取得
+                    info = t.info or {}
+                    if not market_cap:
                         market_cap = info.get("marketCap", 0)
-                        rev_growth = info.get("revenueGrowth", None)
-                        if rev_growth is not None:
-                            rev_growth_pct = round(rev_growth * 100, 1)
+
+                    rev_growth = info.get("revenueGrowth", None)
+                    if rev_growth is not None:
+                        rev_growth_pct = round(rev_growth * 100, 1)
                 except Exception:
                     pass
 
