@@ -19,7 +19,7 @@ OUTPUT_JSON = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 MAX_MARKET_CAP_OKU = 300       # 時価総額 300億円以下
 MIN_TRADING_VALUE_MAN = 5000   # 1日売買代金 5,000万円以上
 BATCH_SIZE = 50                # 負荷軽減のため50に縮小
-TARGET_POOL_LIMIT = 40
+TARGET_POOL_LIMIT = 20
 
 def get_prev_screened_codes():
     if os.path.exists(OUTPUT_JSON):

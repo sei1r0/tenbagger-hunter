@@ -19,7 +19,7 @@ CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
 OUTPUT_HTML_PATH = os.path.join(OUTPUT_HTML_DIR, "index.html")
 
-MAX_AI_ANALYZE = 40
+MAX_AI_ANALYZE = 20
 MAX_TRANSIENT_ERRORS = 2
 
 HTML_TEMPLATE = """<!DOCTYPE html>
