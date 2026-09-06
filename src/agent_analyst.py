@@ -16,6 +16,7 @@ from jinja2 import Template
 from src.utils.notifier import send_flex_carousel
 from src.utils.market_overview import fetch_market_indices
 from src.utils.market_calendar import get_jst_now
+from src.utils.track_record import archive_weekly_results, calculate_track_record
 
 CANDIDATES_FILE = os.path.join(PROJECT_ROOT, "data", "screened_candidates.json")
 OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
@@ -225,6 +226,63 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       border: 1px solid var(--border);
     }
     .btn-link:hover { color: #fff; background: rgba(255,255,255,0.12); }
+
+    /* トラックレコード パネル */
+    .track-panel {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 10px;
+      padding: 1.1rem;
+      margin-bottom: 1.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .track-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .track-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .track-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
+    }
+    .track-stat {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem;
+      text-align: center;
+    }
+    .track-label { font-size: 0.72rem; color: var(--text-sub); margin-bottom: 0.2rem; }
+    .track-val { font-size: 1.15rem; font-weight: bold; }
+    .track-table-wrap {
+      overflow-x: auto;
+      margin-top: 0.6rem;
+    }
+    .track-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+    .track-table th, .track-table td {
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .track-table th { color: var(--text-sub); font-weight: 500; background: rgba(0,0,0,0.2); }
+    .badge-win { color: var(--accent-green); font-weight: bold; }
   </style>
 </head>
 <body>
@@ -247,6 +305,64 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       </div>
       {% endfor %}
     </div>
+
+    <!-- 🏆 トラックレコード & 勝率実績パネル -->
+    {% if track_record and track_record.total_recommended > 0 %}
+    <div class="track-panel">
+      <div class="track-header">
+        <div class="track-title">🏆 過去推奨銘柄の実績・トラックレコード</div>
+        <div style="font-size: 0.75rem; color: var(--text-sub);">直近推奨銘柄の追跡＆パフォーマンス集計</div>
+      </div>
+      <div class="track-grid">
+        <div class="track-stat">
+          <div class="track-label">累計推奨銘柄数</div>
+          <div class="track-val">{{ track_record.total_recommended }}件</div>
+        </div>
+        <div class="track-stat">
+          <div class="track-label">利確達成・勝率</div>
+          <div class="track-val" style="color: var(--accent-green);">{{ track_record.win_rate_pct }}%</div>
+        </div>
+        <div class="track-stat">
+          <div class="track-label">平均最高上昇率</div>
+          <div class="track-val" style="color: var(--accent-gold);">+{{ track_record.avg_max_gain_pct }}%</div>
+        </div>
+        <div class="track-stat">
+          <div class="track-label">+50%超大化け株</div>
+          <div class="track-val" style="color: #c084fc;">{{ track_record.tenbagger_candidates }}銘柄</div>
+        </div>
+      </div>
+      {% if track_record.records %}
+      <div class="track-table-wrap">
+        <table class="track-table">
+          <thead>
+            <tr>
+              <th>推奨日</th>
+              <th>銘柄</th>
+              <th>推奨時価格</th>
+              <th>最高到達値</th>
+              <th>最高上昇率</th>
+              <th>ステータス</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in track_record.records %}
+            <tr>
+              <td style="color: var(--text-sub);">{{ r.date }}</td>
+              <td><strong>{{ r.code }} {{ r.name }}</strong> <span style="font-size: 0.7rem; color: var(--text-sub);">({{ r.conviction_tier }})</span></td>
+              <td>{{ r.recommend_price }}円</td>
+              <td>{{ r.high_price }}円</td>
+              <td class="{% if r.max_gain_pct > 0 %}badge-win{% else %}neg{% endif %}">{% if r.max_gain_pct > 0 %}+{% endif %}{{ r.max_gain_pct }}%</td>
+              <td>
+                <span class="pill {% if '利確' in r.status %}pill-cash{% elif '損切' in r.status %}pill-vcp{% else %}pill-theme{% endif %}">{{ r.status }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
 
     <div class="controls">
       <div>
@@ -655,6 +771,14 @@ def main():
 
     analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
 
+    # 週次アーカイブ保存 ＆ トラックレコード集計
+    try:
+        archive_weekly_results(analyzed_stocks)
+        track_record = calculate_track_record()
+    except Exception as e:
+        print(f"[WARN] トラックレコード処理エラー: {e}")
+        track_record = None
+
     # HTML出力
     os.makedirs(OUTPUT_HTML_DIR, exist_ok=True)
     template = Template(HTML_TEMPLATE, autoescape=True)
@@ -663,7 +787,8 @@ def main():
         generated_at=now_str,
         total_screened=len(candidates),
         analyzed_stocks=analyzed_stocks,
-        market_indices=market_indices
+        market_indices=market_indices,
+        track_record=track_record
     )
 
     with open(OUTPUT_HTML_PATH, "w", encoding="utf-8") as f:

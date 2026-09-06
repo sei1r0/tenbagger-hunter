@@ -1,0 +1,28 @@
+[
+  {
+    "date": "2026-09-06",
+    "code": "4051",
+    "name": "ＧＭＯメディア",
+    "market": "グロース",
+    "sector": "情報・通信業",
+    "recommend_price": 4150.0,
+    "entry_price": 4000.0,
+    "stop_loss": 3820.0,
+    "conviction_tier": "S",
+    "score": 92,
+    "theme_tags": []
+  },
+  {
+    "date": "2026-09-06",
+    "code": "5253",
+    "name": "カバー",
+    "market": "グロース",
+    "sector": "情報・通信業",
+    "recommend_price": 2100.0,
+    "entry_price": 2050.0,
+    "stop_loss": 1950.0,
+    "conviction_tier": "A",
+    "score": 88,
+    "theme_tags": []
+  }
+]

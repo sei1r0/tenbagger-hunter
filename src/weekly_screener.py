@@ -120,8 +120,8 @@ def run_batch_screener():
                         continue
                     df = data[ticker_symbol].dropna()
 
-                # 200日移動平均線計算のため最低150本以上のデータを要求
-                if len(df) < 150:
+                # IPO初動株・新興成長株を捕捉するため最低30本（約1.5ヶ月）のデータを許容
+                if len(df) < 30:
                     continue
 
                 closes = df["Close"]
@@ -139,44 +139,58 @@ def run_batch_screener():
                 if trading_value_man < MIN_TRADING_VALUE_MAN:
                     continue
 
-                sma5_series = closes.rolling(window=5).mean()
-                sma25_series = closes.rolling(window=25).mean()
-                sma75_series = closes.rolling(window=75).mean()
-                sma200_series = closes.rolling(window=min(200, len(closes))).mean()
+                n_bars = len(df)
+                sma5_series = closes.rolling(window=min(5, n_bars)).mean()
+                sma25_series = closes.rolling(window=min(25, n_bars)).mean()
+                sma75_series = closes.rolling(window=min(75, n_bars)).mean() if n_bars >= 40 else None
+                sma200_series = closes.rolling(window=min(200, n_bars)).mean() if n_bars >= 150 else None
 
                 sma5 = float(sma5_series.iloc[-1])
                 sma25 = float(sma25_series.iloc[-1])
-                sma75 = float(sma75_series.iloc[-1])
-                sma200 = float(sma200_series.iloc[-1])
-                sma200_20d_ago = float(sma200_series.iloc[-min(20, len(sma200_series))])
+                sma75 = float(sma75_series.iloc[-1]) if sma75_series is not None else sma25
+                sma200 = float(sma200_series.iloc[-1]) if sma200_series is not None else sma75
 
-                # フィルター3: パーフェクトオーダー（株価 > 25MA > 75MA かつ 株価 > 200MA）
-                if not (curr_close > sma25 and sma25 > sma75 and curr_close > sma200):
-                    continue
+                # フィルター3: 適応型パーフェクトオーダー（IPO新興株適応）
+                if n_bars >= 150:
+                    if not (curr_close > sma25 and sma25 > sma75 and curr_close > sma200):
+                        continue
+                elif n_bars >= 40:
+                    if not (curr_close > sma25 and sma25 > sma75):
+                        continue
+                else:
+                    if not (curr_close > sma25 and curr_close >= sma5):
+                        continue
 
                 # フィルター4: 25日線乖離率（高値掴みイナゴ排除 & 25MAタッチ押し目を許容）
-                deviation_25 = (curr_close - sma25) / sma25
+                deviation_25 = (curr_close - sma25) / max(sma25, 1)
                 if not (MIN_SMA25_DEVIATION <= deviation_25 <= MAX_SMA25_DEVIATION):
                     continue
 
-                # フィルター5: 52週高値から15%以内（高値ブレイクアウト圏）
+                # フィルター5: 52週高値（または上場来高値）から15%以内（高値ブレイクアウト圏）
                 high_52w = float(closes.max())
                 low_52w = float(closes.min())
                 if curr_close < (high_52w * 0.85):
                     continue
 
-                # --- 総合トレンド分析エンジン（5大トレンド要素） ---
+                # --- 総合トレンド分析エンジン（IPO適応型） ---
                 # 1. 200日線上昇 ＆ ミネルヴィニ式 Stage 2 トレンド判定
-                is_200ma_rising = bool(sma200 >= sma200_20d_ago)
-                is_stage2 = bool(curr_close > sma25 > sma75 > sma200 and is_200ma_rising)
+                if n_bars >= 150 and sma200_series is not None:
+                    sma200_20d_ago = float(sma200_series.iloc[-min(20, len(sma200_series))])
+                    is_200ma_rising = bool(sma200 >= sma200_20d_ago)
+                    is_stage2 = bool(curr_close > sma25 > sma75 > sma200 and is_200ma_rising)
+                else:
+                    sma25_5d_ago = float(sma25_series.iloc[-min(5, len(sma25_series))])
+                    is_25ma_rising = bool(sma25 >= sma25_5d_ago)
+                    is_stage2 = bool(curr_close > sma25 >= sma75 and is_25ma_rising)
 
-                # 2. ゴールデンクロス初動判定 (直近15日以内に25MAが75MA上抜け、または直近5日以内に5MAが25MA上抜け)
-                diff_25_75 = sma25_series - sma75_series
+                # 2. ゴールデンクロス初動判定 (25MA x 75MA または 5MA x 25MA)
                 is_gc_25_75 = False
-                if len(diff_25_75) >= 16:
-                    rec_diffs = diff_25_75.iloc[-15:]
-                    if rec_diffs.iloc[-1] > 0 and (rec_diffs <= 0).any():
-                        is_gc_25_75 = True
+                if sma75_series is not None:
+                    diff_25_75 = sma25_series - sma75_series
+                    if len(diff_25_75) >= 16:
+                        rec_diffs = diff_25_75.iloc[-15:]
+                        if rec_diffs.iloc[-1] > 0 and (rec_diffs <= 0).any():
+                            is_gc_25_75 = True
 
                 diff_5_25 = sma5_series - sma25_series
                 is_gc_5_25 = False
@@ -187,9 +201,9 @@ def run_batch_screener():
 
                 is_golden_cross = bool(is_gc_25_75 or is_gc_5_25)
 
-                # 3. 52週安値比リバウンド (+30%以上の上昇本命株)
+                # 3. 52週安値比リバウンド (+30%以上の上昇本命株、IPO浅期株は+20%以上)
                 low_rebound_pct = round(((curr_close - low_52w) / max(low_52w, 1)) * 100, 1)
-                is_52w_rebound = bool(low_rebound_pct >= 30.0)
+                is_52w_rebound = bool(low_rebound_pct >= (20.0 if n_bars < 150 else 30.0))
 
                 # 4. 健全ベース形成 (高値からの調整が15%以内の浅いカップ/フラッグ)
                 pullback_from_high_pct = round(((high_52w - curr_close) / max(high_52w, 1)) * 100, 1)
@@ -197,9 +211,9 @@ def run_batch_screener():
 
                 # 5. MACD モメンタム好転 (MACD > Signal)
                 ema12 = closes.ewm(span=12, adjust=False).mean()
-                ema26 = closes.ewm(span=26, adjust=False).mean()
+                ema26 = closes.ewm(span=min(26, n_bars), adjust=False).mean()
                 macd_line = ema12 - ema26
-                macd_signal = macd_line.ewm(span=9, adjust=False).mean()
+                macd_signal = macd_line.ewm(span=min(9, n_bars), adjust=False).mean()
                 is_macd_bullish = bool(macd_line.iloc[-1] > macd_signal.iloc[-1])
 
                 # 時価総額・ファンダメンタルズ取得
@@ -246,9 +260,11 @@ def run_batch_screener():
                     if psr_val is not None and float(psr_val) > 0:
                         psr = round(float(psr_val), 1)
 
-                    # 企業公式概要
+                    # 企業公式概要（欠損時の自動フォールバック補完）
                     raw_summary = info.get("longBusinessSummary") or info.get("businessSummary") or ""
                     business_summary = raw_summary.strip()[:200]
+                    if not business_summary:
+                        business_summary = f"{row_meta['name']}は、東証{row_meta['market']}市場に上場する{row_meta['sector']}関連企業です。"
 
                     # ネットキャッシュ（実質無借金判定: 現預金 > 有利子負債）
                     total_cash = info.get("totalCash", 0) or 0
@@ -258,12 +274,15 @@ def run_batch_screener():
                     # 浮動株時価総額の推定
                     float_shares = info.get("floatShares", None)
 
-                    # ① 上場後1〜5年「黄金期」判定
+                    # ① 上場後1〜5年「黄金期」判定（欠損時はヒストリカルデータから逆算補完）
                     first_trade_epoch = info.get("firstTradeDateEpochUtc", None)
                     is_fresh_ipo = False
                     if first_trade_epoch:
                         days_since_ipo = (time.time() - float(first_trade_epoch)) / 86400
-                        is_fresh_ipo = bool(300 <= days_since_ipo <= 1825) # 約1年〜5年
+                        is_fresh_ipo = bool(30 <= days_since_ipo <= 1825) # 約1ヶ月〜5年
+                    elif n_bars < 200:
+                        # 取得データが200本未満の新興株は上場黄金期と判定
+                        is_fresh_ipo = True
 
                     # ② 成長加速度（売上成長 +25%以上 または 利益成長 +30%以上）
                     earnings_growth = info.get("earningsGrowth", None)

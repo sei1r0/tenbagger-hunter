@@ -1,0 +1,65 @@
+{
+  "total_recommended": 4,
+  "win_count": 2,
+  "win_rate_pct": 50.0,
+  "avg_max_gain_pct": 35.6,
+  "tenbagger_candidates": 2,
+  "records": [
+    {
+      "date": "2026-08-30",
+      "code": "4051",
+      "name": "ＧＭＯメディア",
+      "market": "グロース",
+      "sector": "情報・通信業",
+      "conviction_tier": "S",
+      "recommend_price": 4150.0,
+      "curr_price": 6090.0,
+      "high_price": 7110.0,
+      "max_gain_pct": 71.3,
+      "curr_gain_pct": 46.7,
+      "status": "利確圏 (+10%超)"
+    },
+    {
+      "date": "2026-09-06",
+      "code": "4051",
+      "name": "ＧＭＯメディア",
+      "market": "グロース",
+      "sector": "情報・通信業",
+      "conviction_tier": "S",
+      "recommend_price": 4150.0,
+      "curr_price": 6090.0,
+      "high_price": 7110.0,
+      "max_gain_pct": 71.3,
+      "curr_gain_pct": 46.7,
+      "status": "利確圏 (+10%超)"
+    },
+    {
+      "date": "2026-08-30",
+      "code": "5253",
+      "name": "カバー",
+      "market": "グロース",
+      "sector": "情報・通信業",
+      "conviction_tier": "A",
+      "recommend_price": 2100.0,
+      "curr_price": 1654.0,
+      "high_price": 2100.0,
+      "max_gain_pct": 0.0,
+      "curr_gain_pct": -21.2,
+      "status": "損切執行"
+    },
+    {
+      "date": "2026-09-06",
+      "code": "5253",
+      "name": "カバー",
+      "market": "グロース",
+      "sector": "情報・通信業",
+      "conviction_tier": "A",
+      "recommend_price": 2100.0,
+      "curr_price": 1654.0,
+      "high_price": 2100.0,
+      "max_gain_pct": 0.0,
+      "curr_gain_pct": -21.2,
+      "status": "損切執行"
+    }
+  ]
+}
