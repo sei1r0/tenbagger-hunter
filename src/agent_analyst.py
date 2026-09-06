@@ -18,7 +18,7 @@ OUTPUT_HTML_DIR = os.path.join(PROJECT_ROOT, "docs")
 OUTPUT_HTML_PATH = os.path.join(OUTPUT_HTML_DIR, "index.html")
 
 # 無料枠レートリミット（20回/日・15RPM）を確実に守る上限設定
-MAX_AI_ANALYZE = 15
+MAX_AI_ANALYZE = 40
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="ja">
@@ -247,8 +247,8 @@ def main():
         item['analysis'] = analysis
         analyzed_stocks.append(item)
         
-        # 15 RPM 制限対策で 4.0 秒待機
-        time.sleep(4.0)
+        # 待機時間調整（0.5秒）
+        time.sleep(0.5)
 
     analyzed_stocks.sort(key=lambda x: x['analysis']['score'], reverse=True)
 
